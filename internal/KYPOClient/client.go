@@ -15,14 +15,14 @@ type Client struct {
 	Token      string
 }
 
-func NewClient(endpoint, token string) *Client {
+func NewClient(endpoint, token string) (*Client, error) {
 	client := Client{
 		Endpoint:   endpoint,
 		HTTPClient: http.DefaultClient,
 		Token:      token,
 	}
 
-	return &client
+	return &client, nil
 }
 
 var ErrNotFound = errors.New("not found")

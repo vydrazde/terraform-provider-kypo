@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -26,24 +25,6 @@ func NewDefinitionsResource() resource.Resource {
 // definitionsResource defines the resource implementation.
 type definitionsResource struct {
 	client *KYPOClient.Client
-}
-
-// definitionsResourceModel describes the resource data model.
-type definitionsResourceModel struct {
-	Id        types.Int64  `tfsdk:"id"`
-	Name      types.String `tfsdk:"name"`
-	Url       types.String `tfsdk:"url"`
-	Rev       types.String `tfsdk:"rev"`
-	CreatedBy userModel    `tfsdk:"created_by"`
-}
-
-type userModel struct {
-	Id         types.Int64  `tfsdk:"id"`
-	Sub        types.String `tfsdk:"sub"`
-	FullName   types.String `tfsdk:"full_name"`
-	GivenName  types.String `tfsdk:"given_name"`
-	FamilyName types.String `tfsdk:"family_name"`
-	Mail       types.String `tfsdk:"mail"`
 }
 
 func (r *definitionsResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {

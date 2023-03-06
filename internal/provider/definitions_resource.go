@@ -33,7 +33,7 @@ type definitionsResourceModel struct {
 	Name      types.String `tfsdk:"name"`
 	Url       types.String `tfsdk:"url"`
 	Rev       types.String `tfsdk:"rev"`
-	CreatedBy types.Object `tfsdk:"created_by"`
+	CreatedBy userModel    `tfsdk:"created_by"`
 }
 
 type userModel struct {
@@ -129,10 +129,11 @@ func (r *definitionsResource) Configure(ctx context.Context, req resource.Config
 }
 
 func (r *definitionsResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data definitionsResourceModel
+	var url, rev string
 
 	// Read Terraform plan data into the model
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("url"), &url)...)
+	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("rev"), &rev)...)
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -140,12 +141,13 @@ func (r *definitionsResource) Create(ctx context.Context, req resource.CreateReq
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	definition, err := r.client.CreateDefinition(data.Url.ValueString(), data.Rev.ValueString())
+	definition, err := r.client.CreateDefinition(url, rev)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read example, got error: %s", err))
 		return
 	}
-	types.ObjectValue(userModel, definition.CreatedBy)
+	//var data definitionsResourceModel
+
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log
 	tflog.Trace(ctx, "created a resource")
@@ -155,10 +157,9 @@ func (r *definitionsResource) Create(ctx context.Context, req resource.CreateReq
 }
 
 func (r *definitionsResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data definitionsResourceModel
+	var id int64
 
-	// Read Terraform prior state data into the model
-	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("id"), &id)...)
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -166,7 +167,7 @@ func (r *definitionsResource) Read(ctx context.Context, req resource.ReadRequest
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	definition, err := r.client.GetDefinition(data.Id.ValueInt64())
+	definition, err := r.client.GetDefinition(id)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read example, got error: %s", err))
 		return

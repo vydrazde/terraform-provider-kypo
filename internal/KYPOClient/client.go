@@ -24,43 +24,42 @@ func NewClient(endpoint, token string) *Client {
 	return &client
 }
 
-func (c *Client) doRequest(req *http.Request, expected_status int) ([]byte, error) {
+type ResourceNotFound struct {
+}
+
+func (c *Client) doRequest(req *http.Request) ([]byte, int, error) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", c.Token)
 
 	res, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer res.Body.Close()
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	if res.StatusCode != expected_status {
-		return nil, fmt.Errorf("status: %d, body: %s", res.StatusCode, body)
-	}
-
-	return body, err
+	return body, res.StatusCode, nil
 }
 
 type Definition struct {
-	Id        int64     `json:"id"`
-	Url       string    `json:"url"`
-	Name      string    `json:"name"`
-	Rev       string    `json:"rev"`
-	CreatedBy UserModel `json:"created_by"`
+	Id        int64     `json:"id" tfsdk:"id"`
+	Url       string    `json:"url" tfsdk:"url"`
+	Name      string    `json:"name" tfsdk:"name"`
+	Rev       string    `json:"rev" tfsdk:"rev"`
+	CreatedBy UserModel `json:"created_by" tfsdk:"created_by"`
 }
 
 type UserModel struct {
-	Id         int64  `json:"id"`
-	Sub        string `json:"sub"`
-	FullName   string `json:"full_name"`
-	GivenName  string `json:"given_name"`
-	FamilyName string `json:"family_name"`
-	Mail       string `json:"mail"`
+	Id         int64  `json:"id" tfsdk:"id"`
+	Sub        string `json:"sub" tfsdk:"sub"`
+	FullName   string `json:"full_name" tfsdk:"full_name"`
+	GivenName  string `json:"given_name" tfsdk:"given_name"`
+	FamilyName string `json:"family_name" tfsdk:"family_name"`
+	Mail       string `json:"mail" tfsdk:"mail"`
 }
 
 type DefinitionRequest struct {
@@ -74,12 +73,21 @@ func (c *Client) GetDefinition(definitionID int64) (*Definition, error) {
 		return nil, err
 	}
 
-	body, err := c.doRequest(req, http.StatusOK)
+	body, status, err := c.doRequest(req)
 	if err != nil {
 		return nil, err
 	}
 
 	definition := Definition{}
+
+	if status == http.StatusNotFound {
+		return nil, ResourceNotFound("a")
+	}
+
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("status: %d, body: %s", status, body)
+	}
+
 	err = json.Unmarshal(body, &definition)
 	if err != nil {
 		return nil, err
@@ -99,9 +107,13 @@ func (c *Client) CreateDefinition(url, rev string) (*Definition, error) {
 		return nil, err
 	}
 
-	body, err := c.doRequest(req, http.StatusCreated)
+	body, status, err := c.doRequest(req)
 	if err != nil {
 		return nil, err
+	}
+
+	if status != http.StatusCreated {
+		return nil, fmt.Errorf("status: %d, body: %s", status, body)
 	}
 
 	definition := Definition{}
@@ -111,4 +123,26 @@ func (c *Client) CreateDefinition(url, rev string) (*Definition, error) {
 	}
 
 	return &definition, nil
+}
+
+func (c *Client) DeleteDefinition(definitionID int64) error {
+	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/definitions/%d", c.Endpoint, definitionID), nil)
+	if err != nil {
+		return err
+	}
+
+	body, status, err := c.doRequest(req)
+	if err != nil {
+		return err
+	}
+
+	if status == http.StatusNotFound {
+		return nil
+	}
+
+	if status != http.StatusNoContent {
+		return fmt.Errorf("status: %d, body: %s", status, body)
+	}
+
+	return nil
 }

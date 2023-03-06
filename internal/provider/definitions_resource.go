@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"strconv"
 	"terraform-provider-kypo/internal/KYPOClient"
@@ -52,10 +53,16 @@ func (r *definitionsResource) Schema(ctx context.Context, req resource.SchemaReq
 			"url": schema.StringAttribute{
 				MarkdownDescription: "Url to the Git repository of the sandbox definition",
 				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"rev": schema.StringAttribute{
 				MarkdownDescription: "Revision of the Git repository of the sandbox definition",
 				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"created_by": schema.SingleNestedAttribute{
 				MarkdownDescription: "Creator of this sandbox definition",
@@ -165,26 +172,7 @@ func (r *definitionsResource) Read(ctx context.Context, req resource.ReadRequest
 	resp.Diagnostics.Append(resp.State.Set(ctx, &definition)...)
 }
 
-func (r *definitionsResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data *ExampleResourceModel
-
-	// Read Terraform plan data into the model
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// If applicable, this is a great opportunity to initialize any necessary
-	// provider client data and make a call using it.
-	// httpResp, err := r.client.Do(httpReq)
-	// if err != nil {
-	//     resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update example, got error: %s", err))
-	//     return
-	// }
-
-	// Save updated data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+func (r *definitionsResource) Update(_ context.Context, _ resource.UpdateRequest, _ *resource.UpdateResponse) {
 }
 
 func (r *definitionsResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {

@@ -136,11 +136,7 @@ func (c *Client) DeleteDefinition(definitionID int64) error {
 		return err
 	}
 
-	if status == http.StatusNotFound {
-		return nil
-	}
-
-	if status != http.StatusNoContent {
+	if status != http.StatusNoContent && status != http.StatusNotFound {
 		return fmt.Errorf("status: %d, body: %s", status, body)
 	}
 

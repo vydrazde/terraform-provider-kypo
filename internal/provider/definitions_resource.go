@@ -19,6 +19,7 @@ import (
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &definitionsResource{}
 var _ resource.ResourceWithImportState = &definitionsResource{}
+var _ resource.ResourceWithConfigure = &definitionsResource{}
 
 func NewDefinitionsResource() resource.Resource {
 	return &definitionsResource{}
@@ -29,11 +30,11 @@ type definitionsResource struct {
 	client *KYPOClient.Client
 }
 
-func (r *definitionsResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *definitionsResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_definitions"
 }
 
-func (r *definitionsResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *definitionsResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
 		MarkdownDescription: "Sandbox definition",
@@ -98,7 +99,7 @@ func (r *definitionsResource) Schema(ctx context.Context, req resource.SchemaReq
 	}
 }
 
-func (r *definitionsResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *definitionsResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
@@ -109,12 +110,12 @@ func (r *definitionsResource) Configure(ctx context.Context, req resource.Config
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected ****.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected KYPOClient.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
 	}
-
+	client.Endpoint += "/kypo-sandbox-service/api/v1"
 	r.client = client
 }
 
@@ -136,7 +137,6 @@ func (r *definitionsResource) Create(ctx context.Context, req resource.CreateReq
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read example, got error: %s", err))
 		return
 	}
-	//var data definitionsResourceModel
 
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log

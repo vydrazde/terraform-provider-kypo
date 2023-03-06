@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -168,6 +169,11 @@ func (r *definitionsResource) Read(ctx context.Context, req resource.ReadRequest
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
 	definition, err := r.client.GetDefinition(id)
+	if errors.Is(err, KYPOClient.ErrNotFound) {
+		resp.State.RemoveResource(ctx)
+		return
+	}
+
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read example, got error: %s", err))
 		return

@@ -2,6 +2,7 @@ package KYPOClient
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -24,8 +25,7 @@ func NewClient(endpoint, token string) *Client {
 	return &client
 }
 
-type ResourceNotFound struct {
-}
+var ErrNotFound = errors.New("not found")
 
 func (c *Client) doRequest(req *http.Request) ([]byte, int, error) {
 	req.Header.Set("Content-Type", "application/json")
@@ -81,7 +81,7 @@ func (c *Client) GetDefinition(definitionID int64) (*Definition, error) {
 	definition := Definition{}
 
 	if status == http.StatusNotFound {
-		return nil, ResourceNotFound("a")
+		return nil, fmt.Errorf("definition %d %w", definitionID, ErrNotFound)
 	}
 
 	if status != http.StatusOK {

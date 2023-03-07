@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"net/http"
 	"strconv"
 	"terraform-provider-kypo/internal/KYPOClient"
 
@@ -115,8 +116,13 @@ func (r *definitionsResource) Configure(_ context.Context, req resource.Configur
 
 		return
 	}
-	client.Endpoint += "/kypo-sandbox-service/api/v1"
-	r.client = client
+	r.client = &KYPOClient.Client{
+		Endpoint:   client.Endpoint + "/kypo-sandbox-service/api/v1",
+		HTTPClient: http.DefaultClient,
+		Token:      client.Token,
+		Username:   client.Username,
+		Password:   client.Password,
+	}
 }
 
 func (r *definitionsResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {

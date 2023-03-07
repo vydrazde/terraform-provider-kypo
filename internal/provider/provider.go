@@ -28,6 +28,8 @@ type KypoProvider struct {
 // KypoProviderModel describes the provider data model.
 type KypoProviderModel struct {
 	Endpoint types.String `tfsdk:"endpoint"`
+	Username types.String `tfsdk:"username"`
+	Password types.String `tfsdk:"password"`
 	Token    types.String `tfsdk:"token"`
 }
 
@@ -42,6 +44,15 @@ func (p *KypoProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp 
 			"endpoint": schema.StringAttribute{
 				MarkdownDescription: "URI",
 				Optional:            true,
+			},
+			"username": schema.StringAttribute{
+				MarkdownDescription: "username",
+				Optional:            true,
+			},
+			"password": schema.StringAttribute{
+				MarkdownDescription: "password",
+				Optional:            true,
+				Sensitive:           true,
 			},
 			"token": schema.StringAttribute{
 				MarkdownDescription: "JSON token",
@@ -69,6 +80,22 @@ func (p *KypoProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 				"Either target apply the source of the value first, set the value statically in the configuration, or use the KYPO_ENDPOINT environment variable.",
 		)
 	}
+	if data.Username.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("username"),
+			"Unknown KYPO API Username",
+			"The provider cannot create the KYPO API client as there is an unknown configuration value for the KYPO API username. "+
+				"Either target apply the source of the value first, set the value statically in the configuration, or use the KYPO_USERNAME environment variable.",
+		)
+	}
+	if data.Password.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("password"),
+			"Unknown KYPO API Password",
+			"The provider cannot create the KYPO API client as there is an unknown configuration value for the KYPO API password. "+
+				"Either target apply the source of the value first, set the value statically in the configuration, or use the KYPO_PASSWORD environment variable.",
+		)
+	}
 	if data.Token.IsUnknown() {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("token"),
@@ -79,10 +106,18 @@ func (p *KypoProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 	}
 
 	endpoint := os.Getenv("KYPO_ENDPOINT")
+	username := os.Getenv("KYPO_USERNAME")
+	password := os.Getenv("KYPO_PASSWORD")
 	token := os.Getenv("KYPO_TOKEN")
 
 	if !data.Endpoint.IsNull() {
 		endpoint = data.Endpoint.ValueString()
+	}
+	if !data.Username.IsNull() {
+		username = data.Username.ValueString()
+	}
+	if !data.Password.IsNull() {
+		password = data.Password.ValueString()
 	}
 	if !data.Token.IsNull() {
 		token = data.Token.ValueString()
@@ -99,12 +134,11 @@ func (p *KypoProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 				"If either is already set, ensure the value is not empty.",
 		)
 	}
-	if token == "" {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("token"),
-			"Missing KYPO API Token",
-			"The provider cannot create the KYPO API client as there is a missing or empty value for the KYPO API token. "+
-				"Set the host value in the configuration or use the KYPO_TOKEN environment variable. "+
+	if token == "" && (username == "" || password == "") {
+		resp.Diagnostics.AddError(
+			"Missing KYPO API Token or Username and Password",
+			"The provider cannot create the KYPO API client as there is a missing or empty value for the KYPO API token or username and password. "+
+				"Set the host value in the configuration or use the KYPO_TOKEN, KYPO_USERNAME and KYPO_PASSWORD environment variables. "+
 				"If either is already set, ensure the value is not empty.",
 		)
 	}
@@ -113,12 +147,19 @@ func (p *KypoProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 	}
 
 	ctx = tflog.SetField(ctx, "kypo_endpoint", endpoint)
+	ctx = tflog.SetField(ctx, "kypo_username", username)
+	ctx = tflog.SetField(ctx, "kypo_password", password)
 	ctx = tflog.SetField(ctx, "kypo_token", token)
-	ctx = tflog.MaskFieldValuesWithFieldKeys(ctx, "kypo_token")
+	ctx = tflog.MaskFieldValuesWithFieldKeys(ctx, "kypo_password", "kypo_token")
 
 	tflog.Debug(ctx, "Creating KYPO client")
-
-	client, err := KYPOClient.NewClient(endpoint, token)
+	var client *KYPOClient.Client
+	var err error
+	if token != "" {
+		client, err = KYPOClient.NewClientWithToken(endpoint, token)
+	} else {
+		client, err = KYPOClient.NewClient(endpoint, username, password)
+	}
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to Create KYPO API Client",

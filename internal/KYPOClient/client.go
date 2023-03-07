@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/http/cookiejar"
+	"regexp"
 	"strings"
 )
 
@@ -13,9 +15,11 @@ type Client struct {
 	Endpoint   string
 	HTTPClient *http.Client
 	Token      string
+	Username   string
+	Password   string
 }
 
-func NewClient(endpoint, token string) (*Client, error) {
+func NewClientWithToken(endpoint, token string) (*Client, error) {
 	client := Client{
 		Endpoint:   endpoint,
 		HTTPClient: http.DefaultClient,
@@ -23,6 +27,63 @@ func NewClient(endpoint, token string) (*Client, error) {
 	}
 
 	return &client, nil
+}
+
+func NewClient(endpoint, username, password string) (*Client, error) {
+	jar, err := cookiejar.New(nil)
+	client := Client{
+		Endpoint:   endpoint,
+		HTTPClient: &http.Client{Jar: jar},
+		Username:   username,
+		Password:   password,
+	}
+	_, err = client.signIn()
+	if err != nil {
+		return nil, err
+	}
+	return &client, nil
+}
+
+func (c *Client) signIn() (string, error) {
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/csirtmu-dummy-issuer-server/login", c.Endpoint), nil)
+	if err != nil {
+		return "", err
+	}
+
+	res, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return "", err
+	}
+
+	err = res.Body.Close()
+	if err != nil {
+		return "", err
+	}
+
+	csrfRegex := regexp.MustCompile("<input type=\"hidden\" name=\"_csrf\" value=\"([^\"]+)\" */>")
+	matches := csrfRegex.FindStringSubmatch(string(body))
+	if len(matches) != 2 {
+		return "", errors.New("failed to match csrf token")
+	}
+	csrf := matches[1]
+	requestBody := fmt.Sprintf("username=%s&password=%s&_csrf=%s&submit=Login", c.Username, c.Password, csrf)
+	req, err = http.NewRequest("POST", fmt.Sprintf("%s/csirtmu-dummy-issuer-server/login", c.Endpoint), strings.NewReader(requestBody))
+
+	if err != nil {
+		return "", err
+	}
+
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	res, err = c.HTTPClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	return res.Proto, err
 }
 
 var ErrNotFound = errors.New("not found")

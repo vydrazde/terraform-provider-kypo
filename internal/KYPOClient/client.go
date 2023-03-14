@@ -7,21 +7,24 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
+	"net/url"
 	"regexp"
 	"strings"
 )
 
 type Client struct {
 	Endpoint   string
+	ClientID   string
 	HTTPClient *http.Client
 	Token      string
 	Username   string
 	Password   string
 }
 
-func NewClientWithToken(endpoint, token string) (*Client, error) {
+func NewClientWithToken(endpoint, clientId, token string) (*Client, error) {
 	client := Client{
 		Endpoint:   endpoint,
+		ClientID:   clientId,
 		HTTPClient: http.DefaultClient,
 		Token:      token,
 	}
@@ -29,28 +32,67 @@ func NewClientWithToken(endpoint, token string) (*Client, error) {
 	return &client, nil
 }
 
-func NewClient(endpoint, username, password string) (*Client, error) {
+func NewClient(endpoint, clientId, username, password string) (*Client, error) {
 	jar, err := cookiejar.New(nil)
 	client := Client{
 		Endpoint:   endpoint,
+		ClientID:   clientId,
 		HTTPClient: &http.Client{Jar: jar},
 		Username:   username,
 		Password:   password,
 	}
-	_, err = client.signIn()
+	token, err := client.signIn()
 	if err != nil {
 		return nil, err
 	}
+	client.Token = token
 	return &client, nil
 }
 
 func (c *Client) signIn() (string, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/csirtmu-dummy-issuer-server/login", c.Endpoint), nil)
+	//jar, err := cookiejar.New(nil)
+	//if err != nil {
+	//	return "", err
+	//}
+
+	httpClient := *c.HTTPClient
+
+	body, err := c.authorize(httpClient)
 	if err != nil {
 		return "", err
 	}
 
-	res, err := c.HTTPClient.Do(req)
+	csrf, err := extractCsrf(body)
+	if err != nil {
+		return "", err
+	}
+
+	return c.login(httpClient, csrf)
+}
+
+func (c *Client) authorize(httpClient http.Client) (string, error) {
+	query := url.Values{}
+	query.Add("response_type", "id_token token")
+	query.Add("client_id", c.ClientID)
+	query.Add("scope", "openid email profile")
+	query.Add("redirect_uri", c.Endpoint)
+
+	reqBody := url.Values{}
+	reqBody.Add("scope_openid", "openid")
+	reqBody.Add("scope_profile", "profile")
+	reqBody.Add("scope_email", "email")
+	reqBody.Add("remember", "until-revoked")
+	reqBody.Add("user_oauth_approval", "true")
+	reqBody.Add("authorize", "Authorize")
+
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/csirtmu-dummy-issuer-server/authorize?%s",
+		c.Endpoint, query.Encode()), strings.NewReader(reqBody.Encode()))
+	if err != nil {
+		return "", err
+	}
+
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	res, err := httpClient.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -65,32 +107,57 @@ func (c *Client) signIn() (string, error) {
 		return "", err
 	}
 
+	return string(body), err
+}
+
+func extractCsrf(body string) (string, error) {
 	csrfRegex := regexp.MustCompile("<input type=\"hidden\" name=\"_csrf\" value=\"([^\"]+)\" */>")
-	matches := csrfRegex.FindStringSubmatch(string(body))
+	matches := csrfRegex.FindStringSubmatch(body)
 	if len(matches) != 2 {
 		return "", errors.New("failed to match csrf token")
 	}
-	csrf := matches[1]
-	requestBody := fmt.Sprintf("username=%s&password=%s&_csrf=%s&submit=Login", c.Username, c.Password, csrf)
-	req, err = http.NewRequest("POST", fmt.Sprintf("%s/csirtmu-dummy-issuer-server/login", c.Endpoint), strings.NewReader(requestBody))
+	return matches[1], nil
+}
 
+func (c *Client) login(httpClient http.Client, csrf string) (string, error) {
+	query := url.Values{}
+	query.Add("username", c.Username)
+	query.Add("password", c.Password)
+	query.Add("_csrf", csrf)
+	query.Add("submit", "Login")
+
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/csirtmu-dummy-issuer-server/login",
+		c.Endpoint), strings.NewReader(query.Encode()))
 	if err != nil {
 		return "", err
 	}
 
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	res, err = c.HTTPClient.Do(req)
+	res, err := httpClient.Do(req)
 	if err != nil {
 		return "", err
 	}
-	return res.Proto, err
+	if res.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("login failed, got HTTP code: %d", res.StatusCode)
+	}
+
+	values, err := url.ParseQuery(res.Request.URL.Fragment)
+	if err != nil {
+		return "", err
+	}
+
+	token := values.Get("access_token")
+	if token == "" {
+		return "", fmt.Errorf("login failed, token is empty")
+	}
+	return token, err
 }
 
 var ErrNotFound = errors.New("not found")
 
 func (c *Client) doRequest(req *http.Request) ([]byte, int, error) {
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", c.Token)
+	req.Header.Set("Authorization", "Bearer "+c.Token)
 
 	res, err := c.HTTPClient.Do(req)
 	if err != nil {

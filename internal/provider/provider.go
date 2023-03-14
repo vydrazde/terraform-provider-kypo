@@ -31,6 +31,7 @@ type KypoProviderModel struct {
 	Username types.String `tfsdk:"username"`
 	Password types.String `tfsdk:"password"`
 	Token    types.String `tfsdk:"token"`
+	ClientID types.String `tfsdk:"client_id"`
 }
 
 func (p *KypoProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -58,6 +59,10 @@ func (p *KypoProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp 
 				MarkdownDescription: "JSON token",
 				Optional:            true,
 				Sensitive:           true,
+			},
+			"client_id": schema.StringAttribute{
+				MarkdownDescription: "KYPO local OIDC client ID",
+				Optional:            true,
 			},
 		},
 	}
@@ -104,11 +109,20 @@ func (p *KypoProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 				"Either target apply the source of the value first, set the value statically in the configuration, or use the KYPO_TOKEN environment variable.",
 		)
 	}
+	if data.ClientID.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("client_id"),
+			"Unknown KYPO API Client ID",
+			"The provider cannot create the KYPO API client as there is an unknown configuration value for the KYPO API client ID. "+
+				"Either target apply the source of the value first, set the value statically in the configuration, or use the KYPO_CLIENT_ID environment variable.",
+		)
+	}
 
 	endpoint := os.Getenv("KYPO_ENDPOINT")
 	username := os.Getenv("KYPO_USERNAME")
 	password := os.Getenv("KYPO_PASSWORD")
 	token := os.Getenv("KYPO_TOKEN")
+	client_id := os.Getenv("KYPO_CLIENT_ID")
 
 	if !data.Endpoint.IsNull() {
 		endpoint = data.Endpoint.ValueString()
@@ -122,6 +136,9 @@ func (p *KypoProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 	if !data.Token.IsNull() {
 		token = data.Token.ValueString()
 	}
+	if !data.ClientID.IsNull() {
+		client_id = data.ClientID.ValueString()
+	}
 
 	// If any of the expected configurations are missing, return
 	// errors with provider-specific guidance.
@@ -131,6 +148,15 @@ func (p *KypoProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 			"Missing KYPO API Endpoint",
 			"The provider cannot create the KYPO API client as there is a missing or empty value for the KYPO API endpoint. "+
 				"Set the host value in the configuration or use the KYPO_ENDPOINT environment variable. "+
+				"If either is already set, ensure the value is not empty.",
+		)
+	}
+	if client_id == "" {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("client_id"),
+			"Missing KYPO API Client ID",
+			"The provider cannot create the KYPO API client as there is a missing or empty value for the KYPO API client ID. "+
+				"Set the host value in the configuration or use the KYPO_CLIENT_ID environment variable. "+
 				"If either is already set, ensure the value is not empty.",
 		)
 	}
@@ -150,15 +176,16 @@ func (p *KypoProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 	ctx = tflog.SetField(ctx, "kypo_username", username)
 	ctx = tflog.SetField(ctx, "kypo_password", password)
 	ctx = tflog.SetField(ctx, "kypo_token", token)
+	ctx = tflog.SetField(ctx, "client_id", client_id)
 	ctx = tflog.MaskFieldValuesWithFieldKeys(ctx, "kypo_password", "kypo_token")
 
 	tflog.Debug(ctx, "Creating KYPO client")
 	var client *KYPOClient.Client
 	var err error
 	if token != "" {
-		client, err = KYPOClient.NewClientWithToken(endpoint, token)
+		client, err = KYPOClient.NewClientWithToken(endpoint, client_id, token)
 	} else {
-		client, err = KYPOClient.NewClient(endpoint, username, password)
+		client, err = KYPOClient.NewClient(endpoint, client_id, username, password)
 	}
 	if err != nil {
 		resp.Diagnostics.AddError(

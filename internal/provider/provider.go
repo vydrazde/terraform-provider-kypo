@@ -122,7 +122,7 @@ func (p *KypoProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 	username := os.Getenv("KYPO_USERNAME")
 	password := os.Getenv("KYPO_PASSWORD")
 	token := os.Getenv("KYPO_TOKEN")
-	client_id := os.Getenv("KYPO_CLIENT_ID")
+	clientId := os.Getenv("KYPO_CLIENT_ID")
 
 	if !data.Endpoint.IsNull() {
 		endpoint = data.Endpoint.ValueString()
@@ -137,7 +137,7 @@ func (p *KypoProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 		token = data.Token.ValueString()
 	}
 	if !data.ClientID.IsNull() {
-		client_id = data.ClientID.ValueString()
+		clientId = data.ClientID.ValueString()
 	}
 
 	// If any of the expected configurations are missing, return
@@ -151,7 +151,7 @@ func (p *KypoProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 				"If either is already set, ensure the value is not empty.",
 		)
 	}
-	if client_id == "" {
+	if clientId == "" {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("client_id"),
 			"Missing KYPO API Client ID",
@@ -176,16 +176,16 @@ func (p *KypoProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 	ctx = tflog.SetField(ctx, "kypo_username", username)
 	ctx = tflog.SetField(ctx, "kypo_password", password)
 	ctx = tflog.SetField(ctx, "kypo_token", token)
-	ctx = tflog.SetField(ctx, "client_id", client_id)
+	ctx = tflog.SetField(ctx, "client_id", clientId)
 	ctx = tflog.MaskFieldValuesWithFieldKeys(ctx, "kypo_password", "kypo_token")
 
 	tflog.Debug(ctx, "Creating KYPO client")
 	var client *KYPOClient.Client
 	var err error
 	if token != "" {
-		client, err = KYPOClient.NewClientWithToken(endpoint, client_id, token)
+		client, err = KYPOClient.NewClientWithToken(endpoint, clientId, token)
 	} else {
-		client, err = KYPOClient.NewClient(endpoint, client_id, username, password)
+		client, err = KYPOClient.NewClient(endpoint, clientId, username, password)
 	}
 	if err != nil {
 		resp.Diagnostics.AddError(

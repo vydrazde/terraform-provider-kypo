@@ -247,7 +247,7 @@ type DefinitionRequest struct {
 }
 
 func (c *Client) GetDefinition(definitionID int64) (*Definition, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/definitions/%d", c.Endpoint, definitionID), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/kypo-sandbox-service/api/v1/definitions/%d", c.Endpoint, definitionID), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -281,7 +281,7 @@ func (c *Client) CreateDefinition(url, rev string) (*Definition, error) {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/definitions", c.Endpoint), strings.NewReader(string(requestBody)))
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/kypo-sandbox-service/api/v1/definitions", c.Endpoint), strings.NewReader(string(requestBody)))
 	if err != nil {
 		return nil, err
 	}
@@ -305,7 +305,7 @@ func (c *Client) CreateDefinition(url, rev string) (*Definition, error) {
 }
 
 func (c *Client) DeleteDefinition(definitionID int64) error {
-	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/definitions/%d", c.Endpoint, definitionID), nil)
+	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/kypo-sandbox-service/api/v1/definitions/%d", c.Endpoint, definitionID), nil)
 	if err != nil {
 		return err
 	}

@@ -224,7 +224,7 @@ func (c *Client) doRequest(req *http.Request) ([]byte, int, error) {
 	return body, res.StatusCode, nil
 }
 
-type Definition struct {
+type SandboxDefinition struct {
 	Id        int64     `json:"id" tfsdk:"id"`
 	Url       string    `json:"url" tfsdk:"url"`
 	Name      string    `json:"name" tfsdk:"name"`
@@ -241,12 +241,12 @@ type UserModel struct {
 	Mail       string `json:"mail" tfsdk:"mail"`
 }
 
-type DefinitionRequest struct {
+type SandboxDefinitionRequest struct {
 	Url string `json:"url"`
 	Rev string `json:"rev"`
 }
 
-func (c *Client) GetDefinition(definitionID int64) (*Definition, error) {
+func (c *Client) GetSandboxDefinition(definitionID int64) (*SandboxDefinition, error) {
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/kypo-sandbox-service/api/v1/definitions/%d", c.Endpoint, definitionID), nil)
 	if err != nil {
 		return nil, err
@@ -257,7 +257,7 @@ func (c *Client) GetDefinition(definitionID int64) (*Definition, error) {
 		return nil, err
 	}
 
-	definition := Definition{}
+	definition := SandboxDefinition{}
 
 	if status == http.StatusNotFound {
 		return nil, fmt.Errorf("definition %d %w", definitionID, ErrNotFound)
@@ -275,8 +275,8 @@ func (c *Client) GetDefinition(definitionID int64) (*Definition, error) {
 	return &definition, nil
 }
 
-func (c *Client) CreateDefinition(url, rev string) (*Definition, error) {
-	requestBody, err := json.Marshal(DefinitionRequest{url, rev})
+func (c *Client) CreateSandboxDefinition(url, rev string) (*SandboxDefinition, error) {
+	requestBody, err := json.Marshal(SandboxDefinitionRequest{url, rev})
 	if err != nil {
 		return nil, err
 	}
@@ -295,7 +295,7 @@ func (c *Client) CreateDefinition(url, rev string) (*Definition, error) {
 		return nil, fmt.Errorf("status: %d, body: %s", status, body)
 	}
 
-	definition := Definition{}
+	definition := SandboxDefinition{}
 	err = json.Unmarshal(body, &definition)
 	if err != nil {
 		return nil, err
@@ -304,7 +304,7 @@ func (c *Client) CreateDefinition(url, rev string) (*Definition, error) {
 	return &definition, nil
 }
 
-func (c *Client) DeleteDefinition(definitionID int64) error {
+func (c *Client) DeleteSandboxDefinition(definitionID int64) error {
 	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/kypo-sandbox-service/api/v1/definitions/%d", c.Endpoint, definitionID), nil)
 	if err != nil {
 		return err

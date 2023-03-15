@@ -17,24 +17,24 @@ import (
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
-var _ resource.Resource = &definitionsResource{}
-var _ resource.ResourceWithImportState = &definitionsResource{}
-var _ resource.ResourceWithConfigure = &definitionsResource{}
+var _ resource.Resource = &sandboxDefinitionResource{}
+var _ resource.ResourceWithImportState = &sandboxDefinitionResource{}
+var _ resource.ResourceWithConfigure = &sandboxDefinitionResource{}
 
-func NewDefinitionsResource() resource.Resource {
-	return &definitionsResource{}
+func NewSandboxDefinitionResource() resource.Resource {
+	return &sandboxDefinitionResource{}
 }
 
-// definitionsResource defines the resource implementation.
-type definitionsResource struct {
+// sandboxDefinitionResource defines the resource implementation.
+type sandboxDefinitionResource struct {
 	client *KYPOClient.Client
 }
 
-func (r *definitionsResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_definitions"
+func (r *sandboxDefinitionResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_sandbox_definition"
 }
 
-func (r *definitionsResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *sandboxDefinitionResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
 		MarkdownDescription: "Sandbox definition",
@@ -99,7 +99,7 @@ func (r *definitionsResource) Schema(_ context.Context, _ resource.SchemaRequest
 	}
 }
 
-func (r *definitionsResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *sandboxDefinitionResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
@@ -118,7 +118,7 @@ func (r *definitionsResource) Configure(_ context.Context, req resource.Configur
 	r.client = client
 }
 
-func (r *definitionsResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+func (r *sandboxDefinitionResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var url, rev string
 
 	// Read Terraform plan data into the model
@@ -131,7 +131,7 @@ func (r *definitionsResource) Create(ctx context.Context, req resource.CreateReq
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	definition, err := r.client.CreateDefinition(url, rev)
+	definition, err := r.client.CreateSandboxDefinition(url, rev)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read example, got error: %s", err))
 		return
@@ -145,7 +145,7 @@ func (r *definitionsResource) Create(ctx context.Context, req resource.CreateReq
 	resp.Diagnostics.Append(resp.State.Set(ctx, &definition)...)
 }
 
-func (r *definitionsResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+func (r *sandboxDefinitionResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var id int64
 
 	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("id"), &id)...)
@@ -156,7 +156,7 @@ func (r *definitionsResource) Read(ctx context.Context, req resource.ReadRequest
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	definition, err := r.client.GetDefinition(id)
+	definition, err := r.client.GetSandboxDefinition(id)
 	if errors.Is(err, KYPOClient.ErrNotFound) {
 		resp.State.RemoveResource(ctx)
 		return
@@ -171,10 +171,10 @@ func (r *definitionsResource) Read(ctx context.Context, req resource.ReadRequest
 	resp.Diagnostics.Append(resp.State.Set(ctx, &definition)...)
 }
 
-func (r *definitionsResource) Update(_ context.Context, _ resource.UpdateRequest, _ *resource.UpdateResponse) {
+func (r *sandboxDefinitionResource) Update(_ context.Context, _ resource.UpdateRequest, _ *resource.UpdateResponse) {
 }
 
-func (r *definitionsResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+func (r *sandboxDefinitionResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var id int64
 
 	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("id"), &id)...)
@@ -185,14 +185,14 @@ func (r *definitionsResource) Delete(ctx context.Context, req resource.DeleteReq
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	err := r.client.DeleteDefinition(id)
+	err := r.client.DeleteSandboxDefinition(id)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read example, got error: %s", err))
 		return
 	}
 }
 
-func (r *definitionsResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *sandboxDefinitionResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	id, err := strconv.Atoi(req.ID)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to import definition, got error: %s", err))

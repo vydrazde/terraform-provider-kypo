@@ -22,11 +22,45 @@ Once you've written your provider, you'll want to [publish it on the Terraform R
 ## Building The Provider
 
 1. Clone the repository
-1. Enter the repository directory
-1. Build the provider using the Go `install` command:
+2. Enter the repository directory
+3. Install dependencies using the Go `mod tidy` command:
+```shell
+go mod tidy
+```
+
+4. Build the provider using the Go `install` command:
 
 ```shell
 go install
+```
+
+## Using the provider
+
+1. Find the `GOBIN` path where Go installs your binaries. Your path may vary depending on how your Go environment variables are configured.
+```shell
+go env GOBIN
+```
+If the `GOBIN` go environment variable is not set, use the default path, `/home/<Username>/go/bin`.
+
+2. Create a new file called `.terraformrc` in the root directory (`~`), then add the `dev_overrides` block below. 
+Change the `<PATH>` to the value returned from the `echo $GOBIN` command above.
+```
+provider_installation {
+
+  dev_overrides {
+      "registry.terraform.io/hashicorp/kypo" = "<PATH>"
+  }
+
+  # For all other providers, install them directly from their origin provider
+  # registries as normal. If you omit this, Terraform will _only_ use
+  # the dev_overrides block, and so no other providers will be available.
+  direct {}
+}
+```
+
+3. Now you can use one of the examples in the `examples` directory and run
+```shell
+terraform plan
 ```
 
 ## Adding Dependencies
@@ -42,10 +76,6 @@ go mod tidy
 ```
 
 Then commit the changes to `go.mod` and `go.sum`.
-
-## Using the provider
-
-Fill this in for each provider
 
 ## Developing the Provider
 

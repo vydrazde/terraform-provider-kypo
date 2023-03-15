@@ -33,11 +33,10 @@ func NewClientWithToken(endpoint, clientId, token string) (*Client, error) {
 }
 
 func NewClient(endpoint, clientId, username, password string) (*Client, error) {
-	jar, err := cookiejar.New(nil)
 	client := Client{
 		Endpoint:   endpoint,
 		ClientID:   clientId,
-		HTTPClient: &http.Client{Jar: jar},
+		HTTPClient: http.DefaultClient,
 		Username:   username,
 		Password:   password,
 	}
@@ -50,24 +49,28 @@ func NewClient(endpoint, clientId, username, password string) (*Client, error) {
 }
 
 func (c *Client) signIn() (string, error) {
-	//jar, err := cookiejar.New(nil)
-	//if err != nil {
-	//	return "", err
-	//}
-
-	httpClient := *c.HTTPClient
-
-	body, err := c.authorize(httpClient)
+	jar, err := cookiejar.New(nil)
 	if err != nil {
 		return "", err
 	}
 
-	csrf, err := extractCsrf(body)
+	httpClient := http.Client{Jar: jar}
+
+	csrf, err := c.authorize(httpClient)
 	if err != nil {
 		return "", err
 	}
 
-	return c.login(httpClient, csrf)
+	token, csrf, err := c.login(httpClient, csrf)
+	if err != nil {
+		return "", err
+	}
+
+	if token != "" {
+		return token, err
+	}
+
+	return c.authorizeFirstTime(httpClient, csrf)
 }
 
 func (c *Client) authorize(httpClient http.Client) (string, error) {
@@ -77,24 +80,18 @@ func (c *Client) authorize(httpClient http.Client) (string, error) {
 	query.Add("scope", "openid email profile")
 	query.Add("redirect_uri", c.Endpoint)
 
-	reqBody := url.Values{}
-	reqBody.Add("scope_openid", "openid")
-	reqBody.Add("scope_profile", "profile")
-	reqBody.Add("scope_email", "email")
-	reqBody.Add("remember", "until-revoked")
-	reqBody.Add("user_oauth_approval", "true")
-	reqBody.Add("authorize", "Authorize")
-
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/csirtmu-dummy-issuer-server/authorize?%s",
-		c.Endpoint, query.Encode()), strings.NewReader(reqBody.Encode()))
+		c.Endpoint, query.Encode()), nil)
 	if err != nil {
 		return "", err
 	}
 
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	res, err := httpClient.Do(req)
 	if err != nil {
 		return "", err
+	}
+	if res.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("authorize failed, got HTTP code: %d", res.StatusCode)
 	}
 
 	body, err := ioutil.ReadAll(res.Body)
@@ -107,7 +104,12 @@ func (c *Client) authorize(httpClient http.Client) (string, error) {
 		return "", err
 	}
 
-	return string(body), err
+	csrf, err := extractCsrf(string(body))
+	if err != nil {
+		return "", err
+	}
+
+	return csrf, nil
 }
 
 func extractCsrf(body string) (string, error) {
@@ -119,7 +121,7 @@ func extractCsrf(body string) (string, error) {
 	return matches[1], nil
 }
 
-func (c *Client) login(httpClient http.Client, csrf string) (string, error) {
+func (c *Client) login(httpClient http.Client, csrf string) (string, string, error) {
 	query := url.Values{}
 	query.Add("username", c.Username)
 	query.Add("password", c.Password)
@@ -129,16 +131,65 @@ func (c *Client) login(httpClient http.Client, csrf string) (string, error) {
 	req, err := http.NewRequest("POST", fmt.Sprintf("%s/csirtmu-dummy-issuer-server/login",
 		c.Endpoint), strings.NewReader(query.Encode()))
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	res, err := httpClient.Do(req)
 	if err != nil {
+		return "", "", err
+	}
+	if res.StatusCode != http.StatusOK {
+		return "", "", fmt.Errorf("login failed, got HTTP code: %d", res.StatusCode)
+	}
+
+	values, err := url.ParseQuery(res.Request.URL.Fragment)
+	if err != nil {
+		return "", "", err
+	}
+
+	token := values.Get("access_token")
+
+	if token != "" {
+		return token, "", err
+	}
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return "", "", err
+	}
+
+	csrf, err = extractCsrf(string(body))
+	if err != nil {
+		return "", "", err
+	}
+
+	return "", csrf, nil
+}
+
+func (c *Client) authorizeFirstTime(httpClient http.Client, csrf string) (string, error) {
+	query := url.Values{}
+	query.Add("scope_openid", "openid")
+	query.Add("scope_profile", "profile")
+	query.Add("scope_email", "email")
+	query.Add("remember", "until-revoked")
+	query.Add("user_oauth_approval", "true")
+	query.Add("authorize", "Authorize")
+	query.Add("_csrf", csrf)
+
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/csirtmu-dummy-issuer-server/authorize",
+		c.Endpoint), strings.NewReader(query.Encode()))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	res, err := httpClient.Do(req)
+	if err != nil {
 		return "", err
 	}
 	if res.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("login failed, got HTTP code: %d", res.StatusCode)
+		return "", fmt.Errorf("authorizeFirstTime failed, got HTTP code: %d", res.StatusCode)
 	}
 
 	values, err := url.ParseQuery(res.Request.URL.Fragment)
@@ -148,7 +199,7 @@ func (c *Client) login(httpClient http.Client, csrf string) (string, error) {
 
 	token := values.Get("access_token")
 	if token == "" {
-		return "", fmt.Errorf("login failed, token is empty")
+		return "", fmt.Errorf("authorizeFirstTime failed, token is empty")
 	}
 	return token, err
 }

@@ -231,3 +231,10 @@ type UserModel struct {
 	FamilyName string `json:"family_name" tfsdk:"family_name"`
 	Mail       string `json:"mail" tfsdk:"mail"`
 }
+
+func boolToString(b bool) string {
+	if b {
+		return "true"
+	}
+	return "false"
+}

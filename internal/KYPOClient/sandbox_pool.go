@@ -93,6 +93,11 @@ func (c *Client) CreateSandboxPool(definitionId, maxSize int64) (*SandboxPool, e
 }
 
 func (c *Client) DeleteSandboxPool(poolId int64) error {
+	err := c.CleanupSandboxPool(poolId, true)
+	if err != nil {
+		return err
+	}
+
 	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/kypo-sandbox-service/api/v1/pools/%d", c.Endpoint, poolId), nil)
 	if err != nil {
 		return err
@@ -104,6 +109,25 @@ func (c *Client) DeleteSandboxPool(poolId int64) error {
 	}
 
 	if status != http.StatusNoContent && status != http.StatusNotFound {
+		return fmt.Errorf("status: %d, body: %s", status, body)
+	}
+
+	return nil
+}
+
+func (c *Client) CleanupSandboxPool(poolId int64, force bool) error {
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/kypo-sandbox-service/api/v1/pools/%d/cleanup-requests?force=%s",
+		c.Endpoint, poolId, boolToString(force)), nil)
+	if err != nil {
+		return err
+	}
+
+	body, status, err := c.doRequest(req)
+	if err != nil {
+		return err
+	}
+
+	if status != http.StatusAccepted {
 		return fmt.Errorf("status: %d, body: %s", status, body)
 	}
 

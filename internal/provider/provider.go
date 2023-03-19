@@ -204,6 +204,7 @@ func (p *KypoProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 func (p *KypoProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewSandboxDefinitionResource,
+		NewSandboxPoolResource,
 	}
 }
 

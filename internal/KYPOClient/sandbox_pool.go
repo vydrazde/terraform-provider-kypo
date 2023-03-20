@@ -93,11 +93,6 @@ func (c *Client) CreateSandboxPool(definitionId, maxSize int64) (*SandboxPool, e
 }
 
 func (c *Client) DeleteSandboxPool(poolId int64) error {
-	err := c.CleanupSandboxPool(poolId, true)
-	if err != nil {
-		return err
-	}
-
 	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/kypo-sandbox-service/api/v1/pools/%d", c.Endpoint, poolId), nil)
 	if err != nil {
 		return err
@@ -130,6 +125,6 @@ func (c *Client) CleanupSandboxPool(poolId int64, force bool) error {
 	if status != http.StatusAccepted {
 		return fmt.Errorf("status: %d, body: %s", status, body)
 	}
-
+	// Wait before cleanup has finished?
 	return nil
 }

@@ -18,7 +18,9 @@ resource "kypo_sandbox_definition" "test" {
   rev = "master"
 }
 resource "kypo_sandbox_pool" "test" {
-  definition_id = kypo_sandbox_definition.test.id
+  definition = {
+    id = kypo_sandbox_definition.test.id
+  }
   max_size = 2
 }
 `,
@@ -27,7 +29,6 @@ resource "kypo_sandbox_pool" "test" {
 					resource.TestCheckResourceAttr("kypo_sandbox_pool.test", "max_size", "2"),
 					resource.TestCheckResourceAttr("kypo_sandbox_pool.test", "rev", "master"),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_pool.test", "id"),
-					resource.TestCheckResourceAttrSet("kypo_sandbox_pool.test", "definition_id"),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_pool.test", "rev_sha"),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_pool.test", "hardware_usage.vcpu"),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_pool.test", "hardware_usage.ram"),
@@ -57,7 +58,9 @@ resource "kypo_sandbox_definition" "test" {
   rev = "master"
 }
 resource "kypo_sandbox_pool" "test" {
-  definition_id = kypo_sandbox_definition.test.id
+  definition = {
+    id = kypo_sandbox_definition.test.id
+  }
   max_size = 10
 }
 `,
@@ -66,7 +69,6 @@ resource "kypo_sandbox_pool" "test" {
 					resource.TestCheckResourceAttr("kypo_sandbox_pool.test", "max_size", "10"),
 					resource.TestCheckResourceAttr("kypo_sandbox_pool.test", "rev", "master"),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_pool.test", "id"),
-					resource.TestCheckResourceAttrSet("kypo_sandbox_pool.test", "definition_id"),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_pool.test", "rev_sha"),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_pool.test", "hardware_usage.vcpu"),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_pool.test", "hardware_usage.ram"),

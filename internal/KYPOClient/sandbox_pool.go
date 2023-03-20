@@ -9,7 +9,6 @@ import (
 
 type SandboxPool struct {
 	Id            int64             `json:"id" tfsdk:"id"`
-	DefinitionId  int64             `json:"definition_id" tfsdk:"definition_id"`
 	Size          int64             `json:"size" tfsdk:"size"`
 	MaxSize       int64             `json:"max_size" tfsdk:"max_size"`
 	LockId        int64             `json:"lock_id" tfsdk:"lock_id"`

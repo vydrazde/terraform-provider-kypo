@@ -4,6 +4,8 @@ resource "kypo_sandbox_definition" "example" {
 }
 
 resource "kypo_sandbox_pool" "example" {
-  definition_id = kypo_sandbox_definition.example.id
+  definition = {
+    id = kypo_sandbox_definition.example.id
+  }
   max_size = 2
 }

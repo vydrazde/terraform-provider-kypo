@@ -46,13 +46,6 @@ func (r *sandboxPoolResource) Schema(_ context.Context, _ resource.SchemaRequest
 					int64planmodifier.UseStateForUnknown(),
 				},
 			},
-			"definition_id": schema.Int64Attribute{
-				MarkdownDescription: "Id of associated sandbox definition",
-				Required:            true,
-				PlanModifiers: []planmodifier.Int64{
-					int64planmodifier.RequiresReplace(),
-				},
-			},
 			"size": schema.Int64Attribute{
 				MarkdownDescription: "Current number of sandboxes",
 				Computed:            true,
@@ -139,11 +132,14 @@ func (r *sandboxPoolResource) Schema(_ context.Context, _ resource.SchemaRequest
 			},
 			"definition": schema.SingleNestedAttribute{
 				MarkdownDescription: "The associated sandbox definition",
-				Computed:            true,
+				Required:            true,
 				Attributes: map[string]schema.Attribute{
 					"id": schema.Int64Attribute{
-						Computed:            true,
-						MarkdownDescription: "Example identifier",
+						MarkdownDescription: "Id of associated sandbox definition",
+						Required:            true,
+						PlanModifiers: []planmodifier.Int64{
+							int64planmodifier.RequiresReplace(),
+						},
 					},
 					"name": schema.StringAttribute{
 						MarkdownDescription: "Name of the sandbox definition",
@@ -216,7 +212,7 @@ func (r *sandboxPoolResource) Create(ctx context.Context, req resource.CreateReq
 	var definitionId, maxSize int64
 
 	// Read Terraform plan data into the model
-	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("definition_id"), &definitionId)...)
+	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("definition").AtName("id"), &definitionId)...)
 	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("max_size"), &maxSize)...)
 
 	if resp.Diagnostics.HasError() {
@@ -230,7 +226,7 @@ func (r *sandboxPoolResource) Create(ctx context.Context, req resource.CreateReq
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read example, got error: %s", err))
 		return
 	}
-	pool.DefinitionId = pool.Definition.Id
+
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log
 	tflog.Trace(ctx, "created a resource")
@@ -260,7 +256,6 @@ func (r *sandboxPoolResource) Read(ctx context.Context, req resource.ReadRequest
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read example, got error: %s", err))
 		return
 	}
-	pool.DefinitionId = pool.Definition.Id
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &pool)...)

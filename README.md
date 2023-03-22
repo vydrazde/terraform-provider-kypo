@@ -58,7 +58,10 @@ provider_installation {
 }
 ```
 
-3. Now you can use one of the examples in the `examples` directory and run
+3. Set up your provider configuration. You can either copy the `examples/provider/provider.tf` file to a folder of one of the 
+other `examples` and modify it, or fill the environment variables `KYPO_ENDPOINT`, `KYPO_CLIENT_ID`, `KYPO_USERNAME` and `KYPO_PASSWORD`.
+
+4. Now you can use one of the examples in the `examples` directory and run
 ```shell
 terraform plan
 ```

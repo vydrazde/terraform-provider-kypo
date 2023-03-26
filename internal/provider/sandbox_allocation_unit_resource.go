@@ -166,13 +166,9 @@ func (r *sandboxAllocationUnitResource) Create(ctx context.Context, req resource
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	pool, err := r.client.CreateSandboxAllocationUnits(poolId, 1)
+	allocationUnit, err := r.client.CreateSandboxAllocationUnitAwait(poolId)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read example, got error: %s", err))
-		return
-	}
-	if len(pool) != 1 {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Expected one allocation unit to be created, got %d instead", len(pool)))
 		return
 	}
 
@@ -181,7 +177,7 @@ func (r *sandboxAllocationUnitResource) Create(ctx context.Context, req resource
 	tflog.Trace(ctx, "created a resource")
 
 	// Save data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, pool[0])...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, allocationUnit)...)
 }
 
 func (r *sandboxAllocationUnitResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {

@@ -61,7 +61,6 @@ func (r *sandboxPoolResource) Schema(_ context.Context, _ resource.SchemaRequest
 				MarkdownDescription: "Id of associated lock",
 				Computed:            true,
 			},
-
 			"rev": schema.StringAttribute{
 				MarkdownDescription: "Revision of the associated Git repository of the sandbox definition",
 				Computed:            true,

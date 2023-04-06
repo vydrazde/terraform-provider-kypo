@@ -93,11 +93,6 @@ func (c *Client) CreateSandboxAllocationUnitAwait(poolId int64) (*SandboxAllocat
 	return &unit, err
 }
 
-type valueOrError[T any] struct {
-	err   error
-	value T
-}
-
 func (c *Client) CreateSandboxAllocationUnitAwaitTimeout(poolId int64, timeout time.Duration) (*SandboxAllocationUnit, error) {
 	resultChannel := make(chan valueOrError[*SandboxAllocationUnit], 1)
 	go func() {
@@ -174,7 +169,7 @@ func (c *Client) PollRequestFinished(unitId int64, pollTime time.Duration, reque
 	return nil, nil // Unreachable
 }
 
-func (c *Client) DeleteSandboxAllocationUnit(unitId int64) error {
+func (c *Client) CreateSandboxCleanupRequestAwait(unitId int64) error {
 	_, err := c.CreateSandboxCleanupRequest(unitId)
 	if err != nil {
 		return err
@@ -188,12 +183,10 @@ func (c *Client) DeleteSandboxAllocationUnit(unitId int64) error {
 	return err
 }
 
-var ErrTimeout = errors.New("has not finished within timeout")
-
-func (c *Client) DeleteSandboxAllocationUnitWithTimeout(unitId int64, timeout time.Duration) error {
+func (c *Client) CreateSandboxCleanupRequestAwaitTimeout(unitId int64, timeout time.Duration) error {
 	resultChannel := make(chan error, 1)
 	go func() {
-		resultChannel <- c.DeleteSandboxAllocationUnit(unitId)
+		resultChannel <- c.CreateSandboxCleanupRequestAwait(unitId)
 	}()
 
 	select {

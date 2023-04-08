@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -47,7 +48,7 @@ func (c *Client) GetSandboxPool(poolId int64) (*SandboxPool, error) {
 	pool := SandboxPool{}
 
 	if status == http.StatusNotFound {
-		return nil, fmt.Errorf("pool %d %w", poolId, ErrNotFound)
+		return nil, &ErrNotFound{ResourceName: "sandbox pool", Identifier: strconv.FormatInt(poolId, 10)}
 	}
 
 	if status != http.StatusOK {

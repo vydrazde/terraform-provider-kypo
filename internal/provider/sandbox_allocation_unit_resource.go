@@ -2,7 +2,6 @@ package provider
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -192,7 +191,7 @@ func (r *sandboxAllocationUnitResource) Read(ctx context.Context, req resource.R
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
 	allocationUnit, err := r.client.GetSandboxAllocationUnit(id)
-	if errors.Is(err, KYPOClient.ErrNotFound) {
+	if _, ok := err.(*KYPOClient.ErrNotFound); ok {
 		resp.State.RemoveResource(ctx)
 		return
 	}

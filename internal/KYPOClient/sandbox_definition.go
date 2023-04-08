@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -34,7 +35,7 @@ func (c *Client) GetSandboxDefinition(definitionID int64) (*SandboxDefinition, e
 	definition := SandboxDefinition{}
 
 	if status == http.StatusNotFound {
-		return nil, fmt.Errorf("definition %d %w", definitionID, ErrNotFound)
+		return nil, &ErrNotFound{ResourceName: "sandbox definition", Identifier: strconv.FormatInt(definitionID, 10)}
 	}
 
 	if status != http.StatusOK {

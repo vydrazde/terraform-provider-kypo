@@ -2,7 +2,6 @@ package provider
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -246,7 +245,7 @@ func (r *sandboxPoolResource) Read(ctx context.Context, req resource.ReadRequest
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
 	pool, err := r.client.GetSandboxPool(id)
-	if errors.Is(err, KYPOClient.ErrNotFound) {
+	if _, ok := err.(*KYPOClient.ErrNotFound); ok {
 		resp.State.RemoveResource(ctx)
 		return
 	}

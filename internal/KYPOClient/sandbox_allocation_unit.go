@@ -2,9 +2,9 @@ package KYPOClient
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"golang.org/x/exp/slices"
@@ -40,7 +40,7 @@ func (c *Client) GetSandboxAllocationUnit(unitId int64) (*SandboxAllocationUnit,
 	allocationUnit := SandboxAllocationUnit{}
 
 	if status == http.StatusNotFound {
-		return nil, fmt.Errorf("sandbox allocation unit %d %w", unitId, ErrNotFound)
+		return nil, &ErrNotFound{ResourceName: "sandbox allocation unit", Identifier: strconv.FormatInt(unitId, 10)}
 	}
 
 	if status != http.StatusOK {
@@ -104,7 +104,7 @@ func (c *Client) CreateSandboxAllocationUnitAwaitTimeout(poolId int64, timeout t
 	case result := <-resultChannel:
 		return result.value, result.err
 	case <-time.After(timeout):
-		return nil, fmt.Errorf("creating sandbox allocation unit %d %w %s", poolId, ErrTimeout, timeout)
+		return nil, &ErrTimeout{Action: "creating sandbox allocation unit", Identifier: strconv.FormatInt(poolId, 10), Timeout: timeout}
 	}
 }
 
@@ -120,7 +120,7 @@ func (c *Client) CreateSandboxCleanupRequest(unitId int64) (*SandboxRequest, err
 	}
 
 	if status == http.StatusNotFound {
-		return nil, fmt.Errorf("sandbox allocation unit %d %w", unitId, ErrNotFound)
+		return nil, &ErrNotFound{ResourceName: "sandbox allocation unit", Identifier: strconv.FormatInt(unitId, 10)}
 	}
 
 	if status != http.StatusCreated {
@@ -150,7 +150,8 @@ func (c *Client) PollRequestFinished(unitId int64, pollTime time.Duration, reque
 		}
 
 		if status == http.StatusNotFound {
-			return nil, fmt.Errorf("sandbox request %d %w", unitId, ErrNotFound)
+			return nil, &ErrNotFound{ResourceName: "sandbox request", Identifier: strconv.FormatInt(unitId, 10)}
+
 		}
 
 		if status != http.StatusOK {
@@ -177,7 +178,7 @@ func (c *Client) CreateSandboxCleanupRequestAwait(unitId int64) error {
 
 	_, err = c.PollRequestFinished(unitId, 3*time.Second, "cleanup")
 	// After cleanup is finished it deletes itself and 404 is thrown
-	if errors.Is(err, ErrNotFound) {
+	if _, ok := err.(*ErrNotFound); ok {
 		return nil
 	}
 	return err
@@ -193,6 +194,6 @@ func (c *Client) CreateSandboxCleanupRequestAwaitTimeout(unitId int64, timeout t
 	case result := <-resultChannel:
 		return result
 	case <-time.After(timeout):
-		return fmt.Errorf("deleting sandbox allocation unit %d %w %s", unitId, ErrTimeout, timeout)
+		return &ErrTimeout{Action: "deleting sandbox allocation unit", Identifier: strconv.FormatInt(unitId, 10), Timeout: timeout}
 	}
 }

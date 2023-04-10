@@ -167,13 +167,13 @@ func (r *sandboxAllocationUnitResource) Create(ctx context.Context, req resource
 	// provider client data and make a call using it.
 	allocationUnit, err := r.client.CreateSandboxAllocationUnitAwait(poolId)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read example, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create sandbox allocation unit, got error: %s", err))
 		return
 	}
 
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log
-	tflog.Trace(ctx, "created a resource")
+	tflog.Trace(ctx, fmt.Sprintf("created sandbox allocation unit %d", allocationUnit.Id))
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, allocationUnit)...)
@@ -197,7 +197,7 @@ func (r *sandboxAllocationUnitResource) Read(ctx context.Context, req resource.R
 	}
 
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read example, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read sandbox allocation unit, got error: %s", err))
 		return
 	}
 
@@ -221,7 +221,7 @@ func (r *sandboxAllocationUnitResource) Delete(ctx context.Context, req resource
 	// provider client data and make a call using it.
 	err := r.client.CreateSandboxCleanupRequestAwait(id)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read example, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete sandbox allocation unit, got error: %s", err))
 		return
 	}
 }
@@ -229,7 +229,7 @@ func (r *sandboxAllocationUnitResource) Delete(ctx context.Context, req resource
 func (r *sandboxAllocationUnitResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	id, err := strconv.Atoi(req.ID)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to import pool, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to import sandbox allocation unit, got error: %s", err))
 		return
 	}
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), id)...)

@@ -221,13 +221,13 @@ func (r *sandboxPoolResource) Create(ctx context.Context, req resource.CreateReq
 	// provider client data and make a call using it.
 	pool, err := r.client.CreateSandboxPool(definitionId, maxSize)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read example, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create sandbox pool, got error: %s", err))
 		return
 	}
 
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log
-	tflog.Trace(ctx, "created a resource")
+	tflog.Trace(ctx, fmt.Sprintf("created sandbox pool %d", pool.Id))
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &pool)...)
@@ -251,7 +251,7 @@ func (r *sandboxPoolResource) Read(ctx context.Context, req resource.ReadRequest
 	}
 
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read example, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read sandbox pool, got error: %s", err))
 		return
 	}
 
@@ -275,7 +275,7 @@ func (r *sandboxPoolResource) Delete(ctx context.Context, req resource.DeleteReq
 	// provider client data and make a call using it.
 	err := r.client.DeleteSandboxPool(id)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read example, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete sandbox pool, got error: %s", err))
 		return
 	}
 }
@@ -283,7 +283,7 @@ func (r *sandboxPoolResource) Delete(ctx context.Context, req resource.DeleteReq
 func (r *sandboxPoolResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	id, err := strconv.Atoi(req.ID)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to import pool, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to import sandbox pool, got error: %s", err))
 		return
 	}
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), id)...)

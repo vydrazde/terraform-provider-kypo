@@ -43,25 +43,25 @@ func (p *KypoProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp 
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"endpoint": schema.StringAttribute{
-				MarkdownDescription: "URI",
+				MarkdownDescription: "URI of the homepage of the KYPO instance, like `https://my.kypo.instance.ex`. Can be set with `KYPO_ENDPOINT` environmental variable.",
 				Optional:            true,
 			},
 			"username": schema.StringAttribute{
-				MarkdownDescription: "username",
+				MarkdownDescription: "`username` of the user to login as with `password`. Use either `username` and `password` or just `token`. Can be set with `KYPO_USERNAME` environmental variable.",
 				Optional:            true,
 			},
 			"password": schema.StringAttribute{
-				MarkdownDescription: "password",
+				MarkdownDescription: "`password` of the user to login as with `username`. Use either `username` and `password` or just `token`. Can be set with `KYPO_PASSWORD` environmental variable.",
 				Optional:            true,
 				Sensitive:           true,
 			},
 			"token": schema.StringAttribute{
-				MarkdownDescription: "JSON token",
+				MarkdownDescription: "Bearer token to be used. Takes precedence before `username` and `password`. Bearer tokens usually have limited lifespan. Can be set with `KYPO_TOKEN` environmental variable.",
 				Optional:            true,
 				Sensitive:           true,
 			},
 			"client_id": schema.StringAttribute{
-				MarkdownDescription: "KYPO local OIDC client ID",
+				MarkdownDescription: "KYPO local OIDC client ID. Will be ignored when `token` is set. Can be set with `KYPO_CLIENT_ID` environmental variable.", // TODO how to get value
 				Optional:            true,
 			},
 		},
@@ -151,7 +151,7 @@ func (p *KypoProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 				"If either is already set, ensure the value is not empty.",
 		)
 	}
-	if clientId == "" {
+	if clientId == "" && token == "" {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("client_id"),
 			"Missing KYPO API Client ID",

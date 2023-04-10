@@ -132,13 +132,13 @@ func (r *sandboxDefinitionResource) Create(ctx context.Context, req resource.Cre
 	// provider client data and make a call using it.
 	definition, err := r.client.CreateSandboxDefinition(url, rev)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read example, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create sandbox definition, got error: %s", err))
 		return
 	}
 
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log
-	tflog.Trace(ctx, "created a resource")
+	tflog.Trace(ctx, fmt.Sprintf("created sandbox definition %d", definition.Id))
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &definition)...)
@@ -162,7 +162,7 @@ func (r *sandboxDefinitionResource) Read(ctx context.Context, req resource.ReadR
 	}
 
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read example, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read sandbox definition, got error: %s", err))
 		return
 	}
 
@@ -186,7 +186,7 @@ func (r *sandboxDefinitionResource) Delete(ctx context.Context, req resource.Del
 	// provider client data and make a call using it.
 	err := r.client.DeleteSandboxDefinition(id)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read example, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete sandbox definition, got error: %s", err))
 		return
 	}
 }
@@ -194,7 +194,7 @@ func (r *sandboxDefinitionResource) Delete(ctx context.Context, req resource.Del
 func (r *sandboxDefinitionResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	id, err := strconv.Atoi(req.ID)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to import definition, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to import sandbox definition, got error: %s", err))
 		return
 	}
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), id)...)

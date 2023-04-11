@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"strconv"
 	"terraform-provider-kypo/internal/KYPOClient"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -163,11 +164,38 @@ func (r *sandboxAllocationUnitResource) Create(ctx context.Context, req resource
 		return
 	}
 
-	// If applicable, this is a great opportunity to initialize any necessary
-	// provider client data and make a call using it.
-	allocationUnit, err := r.client.CreateSandboxAllocationUnitAwait(poolId)
+	allocationUnits, err := r.client.CreateSandboxAllocationUnits(poolId, 1)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create sandbox allocation unit, got error: %s", err))
+		return
+	}
+	allocationUnit := allocationUnits[0]
+	resp.Diagnostics.Append(resp.State.Set(ctx, allocationUnit)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	allocationRequest, err := r.client.PollRequestFinished(allocationUnit.AllocationRequest.Id, 5*time.Second, "allocation")
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("awaiting allocation request failed, got error: %s", err))
+		return
+	}
+	allocationUnit.AllocationRequest = *allocationRequest
+	resp.Diagnostics.Append(resp.State.Set(ctx, allocationUnit)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if allocationUnit.AllocationRequest.Stages[0] != "FINISHED" {
+		resp.Diagnostics.AddError("Sandbox Creation Error", fmt.Sprintf("Creation of sandbox allocation unit %d finished with error in Terraform stage", poolId))
+		return
+	}
+	if allocationUnit.AllocationRequest.Stages[1] != "FINISHED" {
+		resp.Diagnostics.AddError("Sandbox Creation Error", fmt.Sprintf("Creation of sandbox allocation unit %d finished with error in Networking Ansible stage", poolId))
+		return
+	}
+	if allocationUnit.AllocationRequest.Stages[2] != "FINISHED" {
+		resp.Diagnostics.AddError("Sandbox Creation Error", fmt.Sprintf("Creation of sandbox allocation unit %d finished with error in User Ansible stage", poolId))
 		return
 	}
 

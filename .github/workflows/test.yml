@@ -77,5 +77,7 @@ jobs:
       - run: go mod download
       - env:
           TF_ACC: "1"
+          KYPO_USERNAME: ${{ secrets.KYPO_USERNAME }}
+          KYPO_PASSWORD: ${{ secrets.KYPO_PASSWORD }}
         run: go test -v -cover ./internal/provider/
         timeout-minutes: 30

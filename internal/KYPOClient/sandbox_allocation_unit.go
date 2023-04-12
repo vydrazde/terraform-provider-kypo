@@ -137,8 +137,8 @@ func (c *Client) CreateSandboxCleanupRequest(unitId int64) (*SandboxRequest, err
 }
 
 func (c *Client) PollRequestFinished(unitId int64, pollTime time.Duration, requestType string) (*SandboxRequest, error) {
-	ticker := time.Tick(pollTime)
-	for range ticker {
+	ticker := time.NewTicker(pollTime)
+	for range ticker.C {
 		req, err := http.NewRequest("GET", fmt.Sprintf("%s/kypo-sandbox-service/api/v1/sandbox-allocation-units/%d/%s-request", c.Endpoint, unitId, requestType), nil)
 		if err != nil {
 			return nil, err

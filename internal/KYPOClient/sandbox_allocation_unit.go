@@ -181,6 +181,9 @@ func (c *Client) CreateSandboxCleanupRequestAwait(unitId int64) error {
 	if _, ok := err.(*ErrNotFound); ok {
 		return nil
 	}
+	if err == nil {
+		return fmt.Errorf("sandbox cleanup request finished with error")
+	}
 	return err
 }
 
@@ -196,4 +199,26 @@ func (c *Client) CreateSandboxCleanupRequestAwaitTimeout(unitId int64, timeout t
 	case <-time.After(timeout):
 		return &ErrTimeout{Action: "deleting sandbox allocation unit", Identifier: strconv.FormatInt(unitId, 10), Timeout: timeout}
 	}
+}
+
+func (c *Client) CancelSandboxAllocationRequest(allocationRequestId int64) error {
+	req, err := http.NewRequest("PATCH", fmt.Sprintf("%s/kypo-sandbox-service/api/v1/allocation-requests/%d/cancel", c.Endpoint, allocationRequestId), nil)
+	if err != nil {
+		return err
+	}
+
+	body, status, err := c.doRequest(req)
+	if err != nil {
+		return err
+	}
+
+	if status == http.StatusNotFound {
+		return &ErrNotFound{ResourceName: "sandbox allocation request", Identifier: strconv.FormatInt(allocationRequestId, 10)}
+	}
+
+	if status != http.StatusOK {
+		return fmt.Errorf("status: %d, body: %s", status, body)
+	}
+
+	return nil
 }

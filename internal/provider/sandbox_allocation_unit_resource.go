@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"golang.org/x/exp/slices"
 	"strconv"
 	"terraform-provider-kypo/internal/KYPOClient"
 	"time"
@@ -234,17 +235,23 @@ func (r *sandboxAllocationUnitResource) Update(_ context.Context, _ resource.Upd
 }
 
 func (r *sandboxAllocationUnitResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var id int64
+	var allocationUnit *KYPOClient.SandboxAllocationUnit
 
-	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("id"), &id)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &allocationUnit)...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// If applicable, this is a great opportunity to initialize any necessary
-	// provider client data and make a call using it.
-	err := r.client.CreateSandboxCleanupRequestAwait(id)
+	if slices.Contains(allocationUnit.AllocationRequest.Stages, "RUNNING") {
+		err := r.client.CancelSandboxAllocationRequest(allocationUnit.AllocationRequest.Id)
+		if err != nil {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to cancel sandbox allocation unit allocation request, got error: %s", err))
+			return
+		}
+	}
+
+	err := r.client.CreateSandboxCleanupRequestAwait(allocationUnit.Id)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete sandbox allocation unit, got error: %s", err))
 		return

@@ -1,6 +1,6 @@
 provider "kypo" {
-  endpoint = "https://images.crp.kypo.muni.cz"
-  client_id = "bzhwmbxgyxALbAdMjYOgpolQzkiQHGwWRXxm"
-  username = "kypo-admin"
-  password = "***"
+  endpoint  = "https://your.kypo.ex"
+  client_id = "***"
+  username  = "user"
+  password  = "***"
 }

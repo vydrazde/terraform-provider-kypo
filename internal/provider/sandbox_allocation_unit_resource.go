@@ -202,9 +202,6 @@ func (r *sandboxAllocationUnitResource) Create(ctx context.Context, req resource
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log
 	tflog.Trace(ctx, fmt.Sprintf("created sandbox allocation unit %d", allocationUnit.Id))
-
-	// Save data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, allocationUnit)...)
 }
 
 func (r *sandboxAllocationUnitResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {

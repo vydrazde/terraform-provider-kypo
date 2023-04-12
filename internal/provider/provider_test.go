@@ -8,8 +8,6 @@ import (
 const (
 	providerConfig = `
 provider "kypo" {
-  username  = "kypo-admin"
-  password  = "***"
   endpoint  = "https://images.crp.kypo.muni.cz"
   client_id = "bzhwmbxgyxALbAdMjYOgpolQzkiQHGwWRXxm"
 }

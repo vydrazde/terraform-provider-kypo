@@ -176,12 +176,12 @@ func (c *Client) CreateSandboxCleanupRequestAwait(unitId int64) error {
 		return err
 	}
 
-	_, err = c.PollRequestFinished(unitId, 3*time.Second, "cleanup")
+	cleanupRequest, err := c.PollRequestFinished(unitId, 3*time.Second, "cleanup")
 	// After cleanup is finished it deletes itself and 404 is thrown
 	if _, ok := err.(*ErrNotFound); ok {
 		return nil
 	}
-	if err == nil {
+	if err == nil && slices.Contains(cleanupRequest.Stages, "FAILED") {
 		return fmt.Errorf("sandbox cleanup request finished with error")
 	}
 	return err

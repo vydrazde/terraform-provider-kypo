@@ -79,5 +79,5 @@ jobs:
           TF_ACC: "1"
           KYPO_USERNAME: ${{ secrets.KYPO_USERNAME }}
           KYPO_PASSWORD: ${{ secrets.KYPO_PASSWORD }}
-        run: go test -v -cover ./internal/provider/
+        run: go test -v -cover ./internal/provider/ -timeout 120m
         timeout-minutes: 30

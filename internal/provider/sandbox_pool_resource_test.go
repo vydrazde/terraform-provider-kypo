@@ -66,7 +66,7 @@ resource "kypo_sandbox_pool" "test" {
 			{
 				Config: providerConfig + `
 resource "kypo_sandbox_definition" "test" {
-  url = "git@gitlab.ics.muni.cz:muni-kypo-trainings/games/junior-hacker.git"
+  url = "git@gitlab.ics.muni.cz:muni-kypo-crp/prototypes-and-examples/sandbox-definitions/general-testing-definition.git"
   rev = "master"
 }
 resource "kypo_sandbox_pool" "test" {

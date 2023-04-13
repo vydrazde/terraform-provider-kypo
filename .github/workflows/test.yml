@@ -50,6 +50,7 @@ jobs:
     name: Terraform Provider Acceptance Tests
     needs: build
     runs-on: ubuntu-latest
+    concurrency: acc-test
     timeout-minutes: 45
     strategy:
       fail-fast: false

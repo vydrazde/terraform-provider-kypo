@@ -9,15 +9,11 @@ import (
 func TestAccSandboxAllocationUnitResource(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		ExternalProviders:        gitlabProvider,
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: providerConfig + `
-resource "kypo_sandbox_definition" "test" {
-  url = "git@gitlab.ics.muni.cz:muni-kypo-crp/prototypes-and-examples/sandbox-definitions/general-testing-definition.git"
-  rev = "9cc4bb7f"
-}
-
+				Config: providerConfig + gitlabTestingDefinition + `
 resource "kypo_sandbox_pool" "test" {
   definition = {
     id = kypo_sandbox_definition.test.id
@@ -57,8 +53,6 @@ resource "kypo_sandbox_allocation_unit" "test" {
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
-			// Update and Read testing
-
 			// Delete testing automatically occurs in TestCase
 		},
 	})

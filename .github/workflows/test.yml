@@ -50,11 +50,9 @@ jobs:
     name: Terraform Provider Acceptance Tests
     needs: build
     runs-on: ubuntu-latest
-    concurrency: acc-test
     timeout-minutes: 45
     strategy:
       fail-fast: false
-      max-parallel: 1
       matrix:
         terraform:
           - '1.0.*'
@@ -77,5 +75,7 @@ jobs:
           TF_ACC: "1"
           KYPO_USERNAME: ${{ secrets.KYPO_USERNAME }}
           KYPO_PASSWORD: ${{ secrets.KYPO_PASSWORD }}
+          GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
+          TF_VARS_GITHUB_ACTION: ${{ vars.GITHUB_ACTION }}
         run: go test -v -cover ./internal/provider/ -timeout 120m
         timeout-minutes: 30

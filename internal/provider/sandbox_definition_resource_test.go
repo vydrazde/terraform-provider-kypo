@@ -1,27 +1,41 @@
 package provider
 
 import (
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
+const gitlabTestingDefinitionTag = gitlabProviderConfig + `
+variable "GITHUB_ACTION" {}
+
+resource "gitlab_project_tag" "terraform_testing_definition" {
+  count   = 2
+
+  name    = "${var.GITHUB_ACTION}-${count.index}"
+  ref     = "master"
+  project = "5211"
+}
+`
+
 func TestAccSandboxDefinitionResource(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		ExternalProviders:        gitlabProvider,
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: providerConfig + `
+				Config: providerConfig + gitlabTestingDefinitionTag + `
 resource "kypo_sandbox_definition" "test" {
-  url = "git@gitlab.ics.muni.cz:muni-kypo-trainings/games/junior-hacker.git"
-  rev = "master"
+  url = "git@gitlab.ics.muni.cz:muni-kypo-crp/prototypes-and-examples/sandbox-definitions/terraform-provider-testing-definition.git"
+  rev = gitlab_project_tag.terraform_testing_definition[0].name
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("kypo_sandbox_definition.test", "url", "git@gitlab.ics.muni.cz:muni-kypo-trainings/games/junior-hacker.git"),
-					resource.TestCheckResourceAttr("kypo_sandbox_definition.test", "rev", "master"),
-					resource.TestCheckResourceAttr("kypo_sandbox_definition.test", "name", "junior-hacker-sandbox"),
+					resource.TestCheckResourceAttr("kypo_sandbox_definition.test", "url", "git@gitlab.ics.muni.cz:muni-kypo-crp/prototypes-and-examples/sandbox-definitions/terraform-provider-testing-definition.git"),
+					resource.TestCheckResourceAttr("kypo_sandbox_definition.test", "rev", os.Getenv("TF_VAR_GITHUB_ACTION")+"-0"),
+					resource.TestCheckResourceAttr("kypo_sandbox_definition.test", "name", "general-testing-definition"),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_definition.test", "id"),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_definition.test", "created_by.id"),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_definition.test", "created_by.sub"),
@@ -39,16 +53,16 @@ resource "kypo_sandbox_definition" "test" {
 			},
 			// Update and Read testing
 			{
-				Config: providerConfig + `
+				Config: providerConfig + gitlabTestingDefinitionTag + `
 resource "kypo_sandbox_definition" "test" {
-  url = "git@gitlab.ics.muni.cz:muni-kypo-crp/prototypes-and-examples/sandbox-definitions/kypo-crp-demo-training.git"
-  rev = "master"
+  url = "git@gitlab.ics.muni.cz:muni-kypo-crp/prototypes-and-examples/sandbox-definitions/terraform-provider-testing-definition.git"
+  rev = gitlab_project_tag.terraform_testing_definition[1].name
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("kypo_sandbox_definition.test", "url", "git@gitlab.ics.muni.cz:muni-kypo-crp/prototypes-and-examples/sandbox-definitions/kypo-crp-demo-training.git"),
-					resource.TestCheckResourceAttr("kypo_sandbox_definition.test", "rev", "master"),
-					resource.TestCheckResourceAttr("kypo_sandbox_definition.test", "name", "kypo-crp-demo-training"),
+					resource.TestCheckResourceAttr("kypo_sandbox_definition.test", "url", "git@gitlab.ics.muni.cz:muni-kypo-crp/prototypes-and-examples/sandbox-definitions/terraform-provider-testing-definition.git"),
+					resource.TestCheckResourceAttr("kypo_sandbox_definition.test", "rev", os.Getenv("TF_VAR_GITHUB_ACTION")+"-1"),
+					resource.TestCheckResourceAttr("kypo_sandbox_definition.test", "name", "general-testing-definition"),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_definition.test", "id"),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_definition.test", "created_by.id"),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_definition.test", "created_by.sub"),

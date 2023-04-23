@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -9,14 +10,11 @@ import (
 func TestAccSandboxPoolResource(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		ExternalProviders:        gitlabProvider,
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: providerConfig + `
-resource "kypo_sandbox_definition" "test" {
-  url = "git@gitlab.ics.muni.cz:muni-kypo-crp/prototypes-and-examples/sandbox-definitions/general-testing-definition.git"
-  rev = "master"
-}
+				Config: providerConfig + gitlabTestingDefinition + `
 resource "kypo_sandbox_pool" "test" {
   definition = {
     id = kypo_sandbox_definition.test.id
@@ -27,7 +25,7 @@ resource "kypo_sandbox_pool" "test" {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("kypo_sandbox_pool.test", "size", "0"),
 					resource.TestCheckResourceAttr("kypo_sandbox_pool.test", "max_size", "2"),
-					resource.TestCheckResourceAttr("kypo_sandbox_pool.test", "rev", "master"),
+					resource.TestCheckResourceAttr("kypo_sandbox_pool.test", "rev", os.Getenv("TF_VAR_GITHUB_ACTION")),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_pool.test", "id"),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_pool.test", "rev_sha"),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_pool.test", "hardware_usage.vcpu"),
@@ -64,11 +62,7 @@ resource "kypo_sandbox_pool" "test" {
 			},
 			// Update and Read testing
 			{
-				Config: providerConfig + `
-resource "kypo_sandbox_definition" "test" {
-  url = "git@gitlab.ics.muni.cz:muni-kypo-crp/prototypes-and-examples/sandbox-definitions/general-testing-definition.git"
-  rev = "master"
-}
+				Config: providerConfig + gitlabTestingDefinition + `
 resource "kypo_sandbox_pool" "test" {
   definition = {
     id = kypo_sandbox_definition.test.id
@@ -79,7 +73,7 @@ resource "kypo_sandbox_pool" "test" {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("kypo_sandbox_pool.test", "size", "0"),
 					resource.TestCheckResourceAttr("kypo_sandbox_pool.test", "max_size", "10"),
-					resource.TestCheckResourceAttr("kypo_sandbox_pool.test", "rev", "master"),
+					resource.TestCheckResourceAttr("kypo_sandbox_pool.test", "rev", os.Getenv("TF_VAR_GITHUB_ACTION")),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_pool.test", "id"),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_pool.test", "rev_sha"),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_pool.test", "hardware_usage.vcpu"),

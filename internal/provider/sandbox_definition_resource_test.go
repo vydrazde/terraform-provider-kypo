@@ -8,12 +8,12 @@ import (
 )
 
 const gitlabTestingDefinitionTag = gitlabProviderConfig + `
-variable "GITHUB_ACTION" {}
+variable "TAG_NAME" {}
 
 resource "gitlab_project_tag" "terraform_testing_definition" {
   count   = 2
 
-  name    = "${var.GITHUB_ACTION}-${count.index}"
+  name    = "${var.TAG_NAME}-${count.index}"
   ref     = "master"
   project = "5211"
 }
@@ -34,7 +34,7 @@ resource "kypo_sandbox_definition" "test" {
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("kypo_sandbox_definition.test", "url", "git@gitlab.ics.muni.cz:muni-kypo-crp/prototypes-and-examples/sandbox-definitions/terraform-provider-testing-definition.git"),
-					resource.TestCheckResourceAttr("kypo_sandbox_definition.test", "rev", os.Getenv("TF_VAR_GITHUB_ACTION")+"-0"),
+					resource.TestCheckResourceAttr("kypo_sandbox_definition.test", "rev", os.Getenv("TF_VAR_TAG_NAME")+"-0"),
 					resource.TestCheckResourceAttr("kypo_sandbox_definition.test", "name", "general-testing-definition"),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_definition.test", "id"),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_definition.test", "created_by.id"),
@@ -61,7 +61,7 @@ resource "kypo_sandbox_definition" "test" {
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("kypo_sandbox_definition.test", "url", "git@gitlab.ics.muni.cz:muni-kypo-crp/prototypes-and-examples/sandbox-definitions/terraform-provider-testing-definition.git"),
-					resource.TestCheckResourceAttr("kypo_sandbox_definition.test", "rev", os.Getenv("TF_VAR_GITHUB_ACTION")+"-1"),
+					resource.TestCheckResourceAttr("kypo_sandbox_definition.test", "rev", os.Getenv("TF_VAR_TAG_NAME")+"-1"),
 					resource.TestCheckResourceAttr("kypo_sandbox_definition.test", "name", "general-testing-definition"),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_definition.test", "id"),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_definition.test", "created_by.id"),

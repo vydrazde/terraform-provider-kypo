@@ -19,10 +19,10 @@ provider "gitlab" {
 }
 `
 	gitlabTestingDefinition = gitlabProviderConfig + `
-variable "GITHUB_ACTION" {}
+variable "TAG_NAME" {}
 
 resource "gitlab_project_tag" "terraform_testing_definition" {
-  name    = var.GITHUB_ACTION
+  name    = var.TAG_NAME
   ref     = "master"
   project = "5211"
 }

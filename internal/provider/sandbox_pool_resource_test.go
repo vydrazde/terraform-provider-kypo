@@ -25,7 +25,7 @@ resource "kypo_sandbox_pool" "test" {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("kypo_sandbox_pool.test", "size", "0"),
 					resource.TestCheckResourceAttr("kypo_sandbox_pool.test", "max_size", "2"),
-					resource.TestCheckResourceAttr("kypo_sandbox_pool.test", "rev", os.Getenv("TF_VAR_GITHUB_ACTION")),
+					resource.TestCheckResourceAttr("kypo_sandbox_pool.test", "rev", os.Getenv("TF_VAR_TAG_NAME")),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_pool.test", "id"),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_pool.test", "rev_sha"),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_pool.test", "hardware_usage.vcpu"),
@@ -73,7 +73,7 @@ resource "kypo_sandbox_pool" "test" {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("kypo_sandbox_pool.test", "size", "0"),
 					resource.TestCheckResourceAttr("kypo_sandbox_pool.test", "max_size", "10"),
-					resource.TestCheckResourceAttr("kypo_sandbox_pool.test", "rev", os.Getenv("TF_VAR_GITHUB_ACTION")),
+					resource.TestCheckResourceAttr("kypo_sandbox_pool.test", "rev", os.Getenv("TF_VAR_TAG_NAME")),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_pool.test", "id"),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_pool.test", "rev_sha"),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_pool.test", "hardware_usage.vcpu"),

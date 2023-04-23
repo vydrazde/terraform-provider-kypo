@@ -71,11 +71,11 @@ jobs:
           terraform_version: ${{ matrix.terraform }}
           terraform_wrapper: false
       - run: go mod download
+      - run: echo "TF_VARS_GITHUB_ACTION=$GITHUB_ACTION" >> $GITHUB_ENV
       - env:
           TF_ACC: "1"
           KYPO_USERNAME: ${{ secrets.KYPO_USERNAME }}
           KYPO_PASSWORD: ${{ secrets.KYPO_PASSWORD }}
           GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
-          TF_VARS_GITHUB_ACTION: ${{ vars.GITHUB_ACTION }}
         run: go test -v -cover ./internal/provider/ -timeout 120m
         timeout-minutes: 30

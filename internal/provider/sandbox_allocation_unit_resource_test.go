@@ -24,6 +24,18 @@ resource "kypo_sandbox_pool" "test" {
 resource "kypo_sandbox_allocation_unit" "test" {
   pool_id = kypo_sandbox_pool.test.id
 }
+
+data "kypo_sandbox_request_output" "test-user" {
+  id = kypo_sandbox_allocation_unit.test.allocation_request.id
+}
+data "kypo_sandbox_request_output" "test-networking" {
+  id = kypo_sandbox_allocation_unit.test.allocation_request.id
+  stage = "networking-ansible"
+}
+data "kypo_sandbox_request_output" "test-terraform" {
+  id = kypo_sandbox_allocation_unit.test.allocation_request.id
+  stage = "terraform"
+}
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("kypo_sandbox_allocation_unit.test", "locked", "false"),
@@ -45,6 +57,22 @@ resource "kypo_sandbox_allocation_unit" "test" {
 					resource.TestCheckResourceAttrSet("kypo_sandbox_allocation_unit.test", "created_by.given_name"),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_allocation_unit.test", "created_by.family_name"),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_allocation_unit.test", "created_by.mail"),
+
+					// Datasource sandbox request output
+					resource.TestCheckResourceAttrPair("data.kypo_sandbox_request_output.test-user", "id",
+						"kypo_sandbox_allocation_unit.test", "allocation_request.id"),
+					resource.TestCheckResourceAttr("data.kypo_sandbox_request_output.test-user", "stage", "user-ansible"),
+					resource.TestCheckResourceAttrSet("data.kypo_sandbox_request_output.test-user", "result"),
+
+					resource.TestCheckResourceAttrPair("data.kypo_sandbox_request_output.test-networking", "id",
+						"kypo_sandbox_allocation_unit.test", "allocation_request.id"),
+					resource.TestCheckResourceAttr("data.kypo_sandbox_request_output.test-networking", "stage", "networking-ansible"),
+					resource.TestCheckResourceAttrSet("data.kypo_sandbox_request_output.test-networking", "result"),
+
+					resource.TestCheckResourceAttrPair("data.kypo_sandbox_request_output.test-terraform", "id",
+						"kypo_sandbox_allocation_unit.test", "allocation_request.id"),
+					resource.TestCheckResourceAttr("data.kypo_sandbox_request_output.test-terraform", "stage", "terraform"),
+					resource.TestCheckResourceAttrSet("data.kypo_sandbox_request_output.test-terraform", "result"),
 				),
 			},
 			// ImportState testing

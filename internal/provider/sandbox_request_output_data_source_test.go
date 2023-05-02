@@ -6,27 +6,51 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func TestAccCoffeesDataSource(t *testing.T) {
+func TestAccSandboxRequestOutputDataSource(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		ExternalProviders:        gitlabProvider,
 		Steps: []resource.TestStep{
-			// Read testing
 			{
-				Config: providerConfig + `data "hashicups_coffees" "test" {}`,
+				Config: providerConfig + gitlabTestingDefinition + `
+resource "kypo_sandbox_pool" "test" {
+  definition = {
+    id = kypo_sandbox_definition.test.id
+  }
+  max_size = 1
+}
+
+resource "kypo_sandbox_allocation_unit" "test" {
+  pool_id = kypo_sandbox_pool.test.id
+}
+
+data "kypo_sandbox_request_output" "test-user" {
+  id = kypo_sandbox_allocation_unit.test.allocation_request.id
+}
+data "kypo_sandbox_request_output" "test-networking" {
+  id = kypo_sandbox_allocation_unit.test.allocation_request.id
+  stage = "networking-ansible"
+}
+data "kypo_sandbox_request_output" "test-terraform" {
+  id = kypo_sandbox_allocation_unit.test.allocation_request.id
+  stage = "terraform"
+}
+`,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					// Verify number of coffees returned
-					resource.TestCheckResourceAttr("data.hashicups_coffees.test", "coffees.#", "9"),
-					// Verify the first coffee to ensure all attributes are set
-					resource.TestCheckResourceAttr("data.hashicups_coffees.test", "coffees.0.description", ""),
-					resource.TestCheckResourceAttr("data.hashicups_coffees.test", "coffees.0.id", "1"),
-					resource.TestCheckResourceAttr("data.hashicups_coffees.test", "coffees.0.image", "/hashicorp.png"),
-					resource.TestCheckResourceAttr("data.hashicups_coffees.test", "coffees.0.ingredients.#", "1"),
-					resource.TestCheckResourceAttr("data.hashicups_coffees.test", "coffees.0.ingredients.0.id", "6"),
-					resource.TestCheckResourceAttr("data.hashicups_coffees.test", "coffees.0.name", "HCP Aeropress"),
-					resource.TestCheckResourceAttr("data.hashicups_coffees.test", "coffees.0.price", "200"),
-					resource.TestCheckResourceAttr("data.hashicups_coffees.test", "coffees.0.teaser", "Automation in a cup"),
-					// Verify placeholder id attribute
-					resource.TestCheckResourceAttr("data.hashicups_coffees.test", "id", "placeholder"),
+					resource.TestCheckResourceAttrPair("data.kypo_sandbox_request_output.test-user", "id",
+						"kypo_sandbox_allocation_unit.test", "allocation_request.id"),
+					resource.TestCheckResourceAttr("data.kypo_sandbox_request_output.test-user", "stage", "user-ansible"),
+					resource.TestCheckResourceAttrSet("data.kypo_sandbox_request_output.test-user", "result"),
+
+					resource.TestCheckResourceAttrPair("data.kypo_sandbox_request_output.test-networking", "id",
+						"kypo_sandbox_allocation_unit.test", "allocation_request.id"),
+					resource.TestCheckResourceAttr("data.kypo_sandbox_request_output.test-networking", "stage", "networking-ansible"),
+					resource.TestCheckResourceAttrSet("data.kypo_sandbox_request_output.test-networking", "result"),
+
+					resource.TestCheckResourceAttrPair("data.kypo_sandbox_request_output.test-terraform", "id",
+						"kypo_sandbox_allocation_unit.test", "allocation_request.id"),
+					resource.TestCheckResourceAttr("data.kypo_sandbox_request_output.test-terraform", "stage", "terraform"),
+					resource.TestCheckResourceAttrSet("data.kypo_sandbox_request_output.test-terraform", "result"),
 				),
 			},
 		},

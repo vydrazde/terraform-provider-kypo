@@ -28,12 +28,12 @@ type SandboxRequest struct {
 }
 
 type SandboxRequestStageOutput struct {
-	Page       int64    `json:"page" tfsdk:"page"`
-	PageSize   int64    `json:"page_size" tfsdk:"page_size"`
-	PageCount  int64    `json:"page_count" tfsdk:"page_count"`
-	Count      int64    `json:"count" tfsdk:"count"`
-	TotalCount int64    `json:"total_count" tfsdk:"total_count"`
-	Results    []string `json:"results" tfsdk:"results"`
+	Page       int64  `json:"page" tfsdk:"page"`
+	PageSize   int64  `json:"page_size" tfsdk:"page_size"`
+	PageCount  int64  `json:"page_count" tfsdk:"page_count"`
+	Count      int64  `json:"count" tfsdk:"line_count"`
+	TotalCount int64  `json:"total_count" tfsdk:"total_count"`
+	Result     string `json:"result" tfsdk:"result"`
 }
 
 type sandboxRequestStageOutputRaw struct {
@@ -283,11 +283,11 @@ func (c *Client) GetSandboxRequestAnsibleOutputs(sandboxRequestId, page, pageSiz
 		PageCount:  outputRaw.PageCount,
 		Count:      outputRaw.Count,
 		TotalCount: outputRaw.TotalCount,
-		Results:    []string{},
+		Result:     "",
 	}
 
 	for _, line := range outputRaw.Results {
-		output.Results = append(output.Results, line.Content)
+		output.Result += "\n" + line.Content
 	}
 
 	return &output, nil

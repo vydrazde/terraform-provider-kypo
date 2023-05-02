@@ -18,6 +18,8 @@ var (
 	_ datasource.DataSourceWithConfigure = &sandboxRequestOutputDataSource{}
 )
 
+const int64MaxValue = 9223372036854775807
+
 // NewSandboxRequestOutputDataSource is a helper function to simplify the provider implementation.
 func NewSandboxRequestOutputDataSource() datasource.DataSource {
 	return &sandboxRequestOutputDataSource{}
@@ -26,6 +28,12 @@ func NewSandboxRequestOutputDataSource() datasource.DataSource {
 // sandboxRequestOutputDataSource is the data source implementation.
 type sandboxRequestOutputDataSource struct {
 	client *KYPOClient.Client
+}
+
+type sandboxRequestOutput struct {
+	Id     types.Int64  `json:"id" tfsdk:"id"`
+	Stage  types.String `json:"stage" tfsdk:"stage"`
+	Result types.String `json:"result" tfsdk:"result"`
 }
 
 // Metadata returns the data source type name.
@@ -41,40 +49,19 @@ func (r *sandboxRequestOutputDataSource) Schema(_ context.Context, _ datasource.
 		Attributes: map[string]schema.Attribute{
 			"id": schema.Int64Attribute{
 				Required:            true,
-				MarkdownDescription: "Sandbox Request Id",
+				MarkdownDescription: "Sandbox Allocation Request Id",
 			},
 			"stage": schema.StringAttribute{
 				Optional: true,
 				MarkdownDescription: "Sandbox Request stage to get the output of. Must be one of `user-ansible`, " +
-					"`networking-ansible` or `terraform`. Defaults to `user-ansible`.",
+					"`networking-ansible` or `terraform`. Defaults to `user-ansible`",
 				Validators: []validator.String{
 					stringvalidator.OneOf([]string{"user-ansible", "networking-ansible", "terraform"}...),
 				},
 			},
-			"page": schema.Int64Attribute{
-				Optional:            true,
-				MarkdownDescription: "Page number",
-			},
-			"page_size": schema.Int64Attribute{
-				Optional:            true,
-				MarkdownDescription: "Number of lines in page",
-			},
-			"page_count": schema.Int64Attribute{
-				Optional:            true,
-				MarkdownDescription: "Number of pages",
-			},
-			"count": schema.Int64Attribute{
-				Optional:            true,
-				MarkdownDescription: "Number of lines in results",
-			},
-			"total_count": schema.Int64Attribute{
-				Optional:            true,
-				MarkdownDescription: "Total number of lines",
-			},
-			"results": schema.ListAttribute{
+			"result": schema.StringAttribute{
 				Computed:            true,
-				ElementType:         types.StringType,
-				MarkdownDescription: "Array of single lines of output",
+				MarkdownDescription: "Output of stage",
 			},
 		},
 	}
@@ -99,5 +86,28 @@ func (r *sandboxRequestOutputDataSource) Configure(_ context.Context, req dataso
 }
 
 func (r *sandboxRequestOutputDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var requestOutput sandboxRequestOutput
 
+	resp.Diagnostics.Append(req.Config.Get(ctx, &requestOutput)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if requestOutput.Stage.IsUnknown() || requestOutput.Stage.IsNull() {
+		requestOutput.Stage = types.StringValue("user-ansible")
+	}
+
+	clientRequestOutput, err := r.client.GetSandboxRequestAnsibleOutputs(requestOutput.Id.ValueInt64(),
+		1, int64MaxValue, requestOutput.Stage.ValueString())
+
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read sandbox request output, got error: %s", err))
+		return
+	}
+
+	requestOutput.Result = types.StringValue(clientRequestOutput.Result)
+
+	// Save updated data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &requestOutput)...)
 }

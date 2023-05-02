@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 
@@ -24,6 +25,28 @@ type SandboxRequest struct {
 	AllocationUnitId int64    `json:"allocation_unit_id" tfsdk:"allocation_unit_id"`
 	Created          string   `json:"created" tfsdk:"created"`
 	Stages           []string `json:"stages" tfsdk:"stages"`
+}
+
+type SandboxRequestStageOutput struct {
+	Page       int64    `json:"page" tfsdk:"page"`
+	PageSize   int64    `json:"page_size" tfsdk:"page_size"`
+	PageCount  int64    `json:"page_count" tfsdk:"page_count"`
+	Count      int64    `json:"count" tfsdk:"count"`
+	TotalCount int64    `json:"total_count" tfsdk:"total_count"`
+	Results    []string `json:"results" tfsdk:"results"`
+}
+
+type sandboxRequestStageOutputRaw struct {
+	Page       int64        `json:"page"`
+	PageSize   int64        `json:"page_size"`
+	PageCount  int64        `json:"page_count"`
+	Count      int64        `json:"count"`
+	TotalCount int64        `json:"total_count"`
+	Results    []outputLine `json:"results"`
+}
+
+type outputLine struct {
+	Content string `json:"content"`
 }
 
 func (c *Client) GetSandboxAllocationUnit(unitId int64) (*SandboxAllocationUnit, error) {
@@ -221,4 +244,51 @@ func (c *Client) CancelSandboxAllocationRequest(allocationRequestId int64) error
 	}
 
 	return nil
+}
+
+func (c *Client) GetSandboxRequestAnsibleOutputs(sandboxRequestId, page, pageSize int64, outputType string) (*SandboxRequestStageOutput, error) {
+	query := url.Values{}
+	query.Add("page", strconv.FormatInt(page, 10))
+	query.Add("page_size", strconv.FormatInt(pageSize, 10))
+
+	req, err := http.NewRequest("GET", fmt.Sprintf(
+		"%s/kypo-sandbox-service/api/v1/allocation-requests/%d/stages/%s/outputs?%s", c.Endpoint, sandboxRequestId, outputType, query.Encode()), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	body, status, err := c.doRequest(req)
+	if err != nil {
+		return nil, err
+	}
+
+	outputRaw := sandboxRequestStageOutputRaw{}
+
+	if status == http.StatusNotFound {
+		return nil, &ErrNotFound{ResourceName: "sandbox request", Identifier: strconv.FormatInt(sandboxRequestId, 10)}
+	}
+
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("status: %d, body: %s", status, body)
+	}
+
+	err = json.Unmarshal(body, &outputRaw)
+	if err != nil {
+		return nil, err
+	}
+
+	output := SandboxRequestStageOutput{
+		Page:       outputRaw.Page,
+		PageSize:   outputRaw.PageSize,
+		PageCount:  outputRaw.PageCount,
+		Count:      outputRaw.Count,
+		TotalCount: outputRaw.TotalCount,
+		Results:    []string{},
+	}
+
+	for _, line := range outputRaw.Results {
+		output.Results = append(output.Results, line.Content)
+	}
+
+	return &output, nil
 }

@@ -252,7 +252,49 @@ func (r *sandboxAllocationUnitResource) Read(ctx context.Context, req resource.R
 	resp.Diagnostics.Append(resp.State.Set(ctx, &allocationUnit)...)
 }
 
-func (r *sandboxAllocationUnitResource) Update(_ context.Context, _ resource.UpdateRequest, _ *resource.UpdateResponse) {
+func (r *sandboxAllocationUnitResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var id types.Int64
+
+	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("id"), &id)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	allocationUnit, err := r.client.GetSandboxAllocationUnit(id.ValueInt64())
+	if _, ok := err.(*KYPOClient.ErrNotFound); ok {
+		resp.State.RemoveResource(ctx)
+		return
+	}
+
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read sandbox allocation unit, got error: %s", err))
+		return
+	}
+
+	allocationRequest, err := r.client.PollRequestFinished(allocationUnit.AllocationRequest.Id, 5*time.Second, "allocation")
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("awaiting allocation request failed, got error: %s", err))
+		return
+	}
+	allocationUnit.AllocationRequest = *allocationRequest
+	resp.Diagnostics.Append(resp.State.Set(ctx, allocationUnit)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if allocationUnit.AllocationRequest.Stages[0] != "FINISHED" {
+		resp.Diagnostics.AddError("Sandbox Creation Error", fmt.Sprintf("Creation of sandbox allocation unit %d finished with error in Terraform stage", id))
+		return
+	}
+	if allocationUnit.AllocationRequest.Stages[1] != "FINISHED" {
+		resp.Diagnostics.AddError("Sandbox Creation Error", fmt.Sprintf("Creation of sandbox allocation unit %d finished with error in Networking Ansible stage", id))
+		return
+	}
+	if allocationUnit.AllocationRequest.Stages[2] != "FINISHED" {
+		resp.Diagnostics.AddError("Sandbox Creation Error", fmt.Sprintf("Creation of sandbox allocation unit %d finished with error in User Ansible stage", id))
+		return
+	}
 }
 
 func (r *sandboxAllocationUnitResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {

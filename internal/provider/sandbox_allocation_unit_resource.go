@@ -3,10 +3,14 @@ package provider
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"golang.org/x/exp/slices"
+	"reflect"
 	"strconv"
 	"terraform-provider-kypo/internal/KYPOClient"
 	"time"
@@ -192,7 +196,7 @@ func (r *sandboxAllocationUnitResource) Create(ctx context.Context, req resource
 		return
 	}
 	allocationUnit := allocationUnits[0]
-	resp.Diagnostics.Append(resp.State.Set(ctx, allocationUnit)...)
+	setState(ctx, allocationUnit, response{State: &resp.State, Diagnostics: &resp.Diagnostics})
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -203,7 +207,7 @@ func (r *sandboxAllocationUnitResource) Create(ctx context.Context, req resource
 		return
 	}
 	allocationUnit.AllocationRequest = *allocationRequest
-	resp.Diagnostics.Append(resp.State.Set(ctx, allocationUnit)...)
+	setState(ctx, allocationUnit, response{State: &resp.State, Diagnostics: &resp.Diagnostics})
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -248,8 +252,21 @@ func (r *sandboxAllocationUnitResource) Read(ctx context.Context, req resource.R
 		return
 	}
 
-	// Save updated data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &allocationUnit)...)
+	setState(ctx, *allocationUnit, response{State: &resp.State, Diagnostics: &resp.Diagnostics})
+}
+
+type response struct {
+	State       *tfsdk.State
+	Diagnostics *diag.Diagnostics
+}
+
+func setState(ctx context.Context, stateValue any, resp response) {
+	valueOf := reflect.ValueOf(stateValue)
+	typeOf := reflect.TypeOf(stateValue)
+
+	for i := 0; i < valueOf.NumField(); i++ {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root(typeOf.Field(i).Tag.Get("tfsdk")), valueOf.Field(i).Interface())...)
+	}
 }
 
 func (r *sandboxAllocationUnitResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -278,7 +295,7 @@ func (r *sandboxAllocationUnitResource) Update(ctx context.Context, req resource
 		return
 	}
 	allocationUnit.AllocationRequest = *allocationRequest
-	resp.Diagnostics.Append(resp.State.Set(ctx, allocationUnit)...)
+	setState(ctx, *allocationUnit, response{State: &resp.State, Diagnostics: &resp.Diagnostics})
 	if resp.Diagnostics.HasError() {
 		return
 	}

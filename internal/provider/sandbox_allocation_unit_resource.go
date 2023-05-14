@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -33,6 +32,20 @@ func NewSandboxAllocationUnitResource() resource.Resource {
 // sandboxAllocationUnitResource defines the resource implementation.
 type sandboxAllocationUnitResource struct {
 	client *KYPOClient.Client
+}
+
+type response struct {
+	State       *tfsdk.State
+	Diagnostics *diag.Diagnostics
+}
+
+func setState(ctx context.Context, stateValue any, resp response) {
+	valueOf := reflect.ValueOf(stateValue)
+	typeOf := reflect.TypeOf(stateValue)
+
+	for i := 0; i < valueOf.NumField(); i++ {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root(typeOf.Field(i).Tag.Get("tfsdk")), valueOf.Field(i).Interface())...)
+	}
 }
 
 func (r *sandboxAllocationUnitResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -139,6 +152,11 @@ func (r *sandboxAllocationUnitResource) Schema(_ context.Context, _ resource.Sch
 				MarkdownDescription: "Revision hash of the Git repository of the sandbox definition",
 				Computed:            true,
 			},
+			"warning_on_allocation_failure": schema.BoolAttribute{
+				MarkdownDescription: "If `true`, will emit a warning instead of error when one of the allocation " +
+					"request stages fails.",
+				Optional: true,
+			},
 		},
 	}
 }
@@ -212,22 +230,44 @@ func (r *sandboxAllocationUnitResource) Create(ctx context.Context, req resource
 		return
 	}
 
+	var warningOnAllocationFailure types.Bool
+	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("warning_on_allocation_failure"), &warningOnAllocationFailure)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	warningOnAllocationFailureBool := warningOnAllocationFailure.Equal(types.BoolValue(true))
+
+	if warningOnAllocationFailureBool {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("warning_on_allocation_failure"), warningOnAllocationFailureBool)...)
+	}
+
 	if allocationUnit.AllocationRequest.Stages[0] != "FINISHED" {
-		resp.Diagnostics.AddError("Sandbox Creation Error", fmt.Sprintf("Creation of sandbox allocation unit %d finished with error in Terraform stage", poolId))
+		warningOrError(&resp.Diagnostics, warningOnAllocationFailureBool, "Sandbox Creation Error",
+			fmt.Sprintf("Creation of sandbox allocation unit %d finished with error in Terraform stage", allocationUnit.Id))
 		return
 	}
 	if allocationUnit.AllocationRequest.Stages[1] != "FINISHED" {
-		resp.Diagnostics.AddError("Sandbox Creation Error", fmt.Sprintf("Creation of sandbox allocation unit %d finished with error in Networking Ansible stage", poolId))
+		warningOrError(&resp.Diagnostics, warningOnAllocationFailureBool, "Sandbox Creation Error",
+			fmt.Sprintf("Creation of sandbox allocation unit %d finished with error in Networking Ansible stage", allocationUnit.Id))
 		return
 	}
 	if allocationUnit.AllocationRequest.Stages[2] != "FINISHED" {
-		resp.Diagnostics.AddError("Sandbox Creation Error", fmt.Sprintf("Creation of sandbox allocation unit %d finished with error in User Ansible stage", poolId))
+		warningOrError(&resp.Diagnostics, warningOnAllocationFailureBool, "Sandbox Creation Error",
+			fmt.Sprintf("Creation of sandbox allocation unit %d finished with error in User Ansible stage", allocationUnit.Id))
 		return
 	}
 
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log
 	tflog.Trace(ctx, fmt.Sprintf("created sandbox allocation unit %d", allocationUnit.Id))
+}
+
+func warningOrError(diag *diag.Diagnostics, warning bool, summary, error string) {
+	if warning {
+		diag.AddWarning(summary, error)
+	} else {
+		diag.AddError(summary, error)
+	}
 }
 
 func (r *sandboxAllocationUnitResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -255,26 +295,30 @@ func (r *sandboxAllocationUnitResource) Read(ctx context.Context, req resource.R
 	setState(ctx, *allocationUnit, response{State: &resp.State, Diagnostics: &resp.Diagnostics})
 }
 
-type response struct {
-	State       *tfsdk.State
-	Diagnostics *diag.Diagnostics
-}
-
-func setState(ctx context.Context, stateValue any, resp response) {
-	valueOf := reflect.ValueOf(stateValue)
-	typeOf := reflect.TypeOf(stateValue)
-
-	for i := 0; i < valueOf.NumField(); i++ {
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root(typeOf.Field(i).Tag.Get("tfsdk")), valueOf.Field(i).Interface())...)
-	}
-}
-
 func (r *sandboxAllocationUnitResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var id types.Int64
+	var stateWarningOnAllocationFailure, planWarningOnAllocationFailure types.Bool
+	var stateAllocationRequest, planAllocationRequest types.Object
 
 	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("id"), &id)...)
+	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("warning_on_allocation_failure"), &stateWarningOnAllocationFailure)...)
+	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("warning_on_allocation_failure"), &planWarningOnAllocationFailure)...)
+	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("allocation_request"), &stateAllocationRequest)...)
+	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("allocation_request"), &planAllocationRequest)...)
 
 	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if !stateWarningOnAllocationFailure.Equal(planWarningOnAllocationFailure) {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("warning_on_allocation_failure"), planWarningOnAllocationFailure)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+	}
+
+	if stateAllocationRequest.Equal(planAllocationRequest) {
 		return
 	}
 
@@ -300,38 +344,45 @@ func (r *sandboxAllocationUnitResource) Update(ctx context.Context, req resource
 		return
 	}
 
+	warningOnAllocationFailureBool := planWarningOnAllocationFailure.Equal(types.BoolValue(true))
+
 	if allocationUnit.AllocationRequest.Stages[0] != "FINISHED" {
-		resp.Diagnostics.AddError("Sandbox Creation Error", fmt.Sprintf("Creation of sandbox allocation unit %d finished with error in Terraform stage", id))
+		warningOrError(&resp.Diagnostics, warningOnAllocationFailureBool, "Sandbox Creation Error",
+			fmt.Sprintf("Creation of sandbox allocation unit %d finished with error in Terraform stage", id))
 		return
 	}
 	if allocationUnit.AllocationRequest.Stages[1] != "FINISHED" {
-		resp.Diagnostics.AddError("Sandbox Creation Error", fmt.Sprintf("Creation of sandbox allocation unit %d finished with error in Networking Ansible stage", id))
+		warningOrError(&resp.Diagnostics, warningOnAllocationFailureBool, "Sandbox Creation Error",
+			fmt.Sprintf("Creation of sandbox allocation unit %d finished with error in Networking Ansible stage", id))
 		return
 	}
 	if allocationUnit.AllocationRequest.Stages[2] != "FINISHED" {
-		resp.Diagnostics.AddError("Sandbox Creation Error", fmt.Sprintf("Creation of sandbox allocation unit %d finished with error in User Ansible stage", id))
+		warningOrError(&resp.Diagnostics, warningOnAllocationFailureBool, "Sandbox Creation Error",
+			fmt.Sprintf("Creation of sandbox allocation unit %d finished with error in User Ansible stage", id))
 		return
 	}
 }
 
 func (r *sandboxAllocationUnitResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var allocationUnit *KYPOClient.SandboxAllocationUnit
+	var allocationRequest *KYPOClient.SandboxRequest
+	var id int64
 
-	resp.Diagnostics.Append(req.State.Get(ctx, &allocationUnit)...)
+	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("allocation_request"), &allocationRequest)...)
+	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("id"), &id)...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	if slices.Contains(allocationUnit.AllocationRequest.Stages, "RUNNING") {
-		err := r.client.CancelSandboxAllocationRequest(allocationUnit.AllocationRequest.Id)
+	if slices.Contains(allocationRequest.Stages, "RUNNING") {
+		err := r.client.CancelSandboxAllocationRequest(allocationRequest.Id)
 		if err != nil {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to cancel sandbox allocation unit allocation request, got error: %s", err))
 			return
 		}
 	}
 
-	err := r.client.CreateSandboxCleanupRequestAwait(allocationUnit.Id)
+	err := r.client.CreateSandboxCleanupRequestAwait(id)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete sandbox allocation unit, got error: %s", err))
 		return

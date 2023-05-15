@@ -19,6 +19,10 @@ Sandbox allocation unit
 
 - `pool_id` (Number) Id of associated sandbox pool
 
+### Optional
+
+- `warning_on_allocation_failure` (Boolean) If `true`, will emit a warning instead of error when one of the allocation request stages fails.
+
 ### Read-Only
 
 - `allocation_request` (Attributes) Associated allocation request (see [below for nested schema](#nestedatt--allocation_request))

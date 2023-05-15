@@ -48,6 +48,32 @@ func setState(ctx context.Context, stateValue any, resp response) {
 	}
 }
 
+func checkAllocationRequestResult(allocationUnit *KYPOClient.SandboxAllocationUnit, diagnostics *diag.Diagnostics, warningOnAllocationFailureBool bool, id int64) {
+	if allocationUnit.AllocationRequest.Stages[0] != "FINISHED" {
+		warningOrError(diagnostics, warningOnAllocationFailureBool, "Sandbox Creation Error - Terraform Stage Failed",
+			fmt.Sprintf("Creation of sandbox allocation unit %d finished with error in Terraform stage", id))
+		return
+	}
+	if allocationUnit.AllocationRequest.Stages[1] != "FINISHED" {
+		warningOrError(diagnostics, warningOnAllocationFailureBool, "Sandbox Creation Error - Ansible Stage Failed",
+			fmt.Sprintf("Creation of sandbox allocation unit %d finished with error in Networking Ansible stage", id))
+		return
+	}
+	if allocationUnit.AllocationRequest.Stages[2] != "FINISHED" {
+		warningOrError(diagnostics, warningOnAllocationFailureBool, "Sandbox Creation Error - User Stage Failed",
+			fmt.Sprintf("Creation of sandbox allocation unit %d finished with error in User Ansible stage", id))
+		return
+	}
+}
+
+func warningOrError(diagnostics *diag.Diagnostics, warning bool, summary, error string) {
+	if warning {
+		diagnostics.AddWarning(summary, error)
+	} else {
+		diagnostics.AddError(summary, error)
+	}
+}
+
 func (r *sandboxAllocationUnitResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_sandbox_allocation_unit"
 }
@@ -248,14 +274,6 @@ func (r *sandboxAllocationUnitResource) Create(ctx context.Context, req resource
 	tflog.Trace(ctx, fmt.Sprintf("created sandbox allocation unit %d", allocationUnit.Id))
 }
 
-func warningOrError(diagnostics *diag.Diagnostics, warning bool, summary, error string) {
-	if warning {
-		diagnostics.AddWarning(summary, error)
-	} else {
-		diagnostics.AddError(summary, error)
-	}
-}
-
 func (r *sandboxAllocationUnitResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var id int64
 
@@ -332,24 +350,6 @@ func (r *sandboxAllocationUnitResource) Update(ctx context.Context, req resource
 	warningOnAllocationFailureBool := planWarningOnAllocationFailure.Equal(types.BoolValue(true))
 
 	checkAllocationRequestResult(allocationUnit, &resp.Diagnostics, warningOnAllocationFailureBool, id.ValueInt64())
-}
-
-func checkAllocationRequestResult(allocationUnit *KYPOClient.SandboxAllocationUnit, diagnostics *diag.Diagnostics, warningOnAllocationFailureBool bool, id int64) {
-	if allocationUnit.AllocationRequest.Stages[0] != "FINISHED" {
-		warningOrError(diagnostics, warningOnAllocationFailureBool, "Sandbox Creation Error - Terraform Stage Failed",
-			fmt.Sprintf("Creation of sandbox allocation unit %d finished with error in Terraform stage", id))
-		return
-	}
-	if allocationUnit.AllocationRequest.Stages[1] != "FINISHED" {
-		warningOrError(diagnostics, warningOnAllocationFailureBool, "Sandbox Creation Error - Ansible Stage Failed",
-			fmt.Sprintf("Creation of sandbox allocation unit %d finished with error in Networking Ansible stage", id))
-		return
-	}
-	if allocationUnit.AllocationRequest.Stages[2] != "FINISHED" {
-		warningOrError(diagnostics, warningOnAllocationFailureBool, "Sandbox Creation Error - User Stage Failed",
-			fmt.Sprintf("Creation of sandbox allocation unit %d finished with error in User Ansible stage", id))
-		return
-	}
 }
 
 func (r *sandboxAllocationUnitResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {

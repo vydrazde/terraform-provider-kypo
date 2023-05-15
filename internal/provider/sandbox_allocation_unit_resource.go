@@ -241,21 +241,7 @@ func (r *sandboxAllocationUnitResource) Create(ctx context.Context, req resource
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("warning_on_allocation_failure"), warningOnAllocationFailureBool)...)
 	}
 
-	if allocationUnit.AllocationRequest.Stages[0] != "FINISHED" {
-		warningOrError(&resp.Diagnostics, warningOnAllocationFailureBool, "Sandbox Creation Error",
-			fmt.Sprintf("Creation of sandbox allocation unit %d finished with error in Terraform stage", allocationUnit.Id))
-		return
-	}
-	if allocationUnit.AllocationRequest.Stages[1] != "FINISHED" {
-		warningOrError(&resp.Diagnostics, warningOnAllocationFailureBool, "Sandbox Creation Error",
-			fmt.Sprintf("Creation of sandbox allocation unit %d finished with error in Networking Ansible stage", allocationUnit.Id))
-		return
-	}
-	if allocationUnit.AllocationRequest.Stages[2] != "FINISHED" {
-		warningOrError(&resp.Diagnostics, warningOnAllocationFailureBool, "Sandbox Creation Error",
-			fmt.Sprintf("Creation of sandbox allocation unit %d finished with error in User Ansible stage", allocationUnit.Id))
-		return
-	}
+	checkAllocationRequestResult(&allocationUnit, &resp.Diagnostics, warningOnAllocationFailureBool, allocationUnit.Id)
 
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log
@@ -345,18 +331,22 @@ func (r *sandboxAllocationUnitResource) Update(ctx context.Context, req resource
 
 	warningOnAllocationFailureBool := planWarningOnAllocationFailure.Equal(types.BoolValue(true))
 
+	checkAllocationRequestResult(allocationUnit, &resp.Diagnostics, warningOnAllocationFailureBool, id.ValueInt64())
+}
+
+func checkAllocationRequestResult(allocationUnit *KYPOClient.SandboxAllocationUnit, diag *diag.Diagnostics, warningOnAllocationFailureBool bool, id int64) {
 	if allocationUnit.AllocationRequest.Stages[0] != "FINISHED" {
-		warningOrError(&resp.Diagnostics, warningOnAllocationFailureBool, "Sandbox Creation Error",
+		warningOrError(diag, warningOnAllocationFailureBool, "Sandbox Creation Error - Terraform Stage Failed",
 			fmt.Sprintf("Creation of sandbox allocation unit %d finished with error in Terraform stage", id))
 		return
 	}
 	if allocationUnit.AllocationRequest.Stages[1] != "FINISHED" {
-		warningOrError(&resp.Diagnostics, warningOnAllocationFailureBool, "Sandbox Creation Error",
+		warningOrError(diag, warningOnAllocationFailureBool, "Sandbox Creation Error - Ansible Stage Failed",
 			fmt.Sprintf("Creation of sandbox allocation unit %d finished with error in Networking Ansible stage", id))
 		return
 	}
 	if allocationUnit.AllocationRequest.Stages[2] != "FINISHED" {
-		warningOrError(&resp.Diagnostics, warningOnAllocationFailureBool, "Sandbox Creation Error",
+		warningOrError(diag, warningOnAllocationFailureBool, "Sandbox Creation Error - User Stage Failed",
 			fmt.Sprintf("Creation of sandbox allocation unit %d finished with error in User Ansible stage", id))
 		return
 	}

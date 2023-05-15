@@ -66,11 +66,11 @@ func checkAllocationRequestResult(allocationUnit *KYPOClient.SandboxAllocationUn
 	}
 }
 
-func warningOrError(diagnostics *diag.Diagnostics, warning bool, summary, error string) {
+func warningOrError(diagnostics *diag.Diagnostics, warning bool, summary, errorString string) {
 	if warning {
-		diagnostics.AddWarning(summary, error)
+		diagnostics.AddWarning(summary, errorString)
 	} else {
-		diagnostics.AddError(summary, error)
+		diagnostics.AddError(summary, errorString)
 	}
 }
 

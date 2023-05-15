@@ -174,7 +174,7 @@ func (r allocationUnitStatePlanModifier) Description(ctx context.Context) string
 	return r.MarkdownDescription(ctx)
 }
 
-func (r allocationUnitStatePlanModifier) MarkdownDescription(ctx context.Context) string {
+func (r allocationUnitStatePlanModifier) MarkdownDescription(_ context.Context) string {
 	return "Replace is required when one of the stages is `FAILED`, update - which only waits for completion, " +
 		"is required when all stages are not `FINISHED`"
 }
@@ -248,11 +248,11 @@ func (r *sandboxAllocationUnitResource) Create(ctx context.Context, req resource
 	tflog.Trace(ctx, fmt.Sprintf("created sandbox allocation unit %d", allocationUnit.Id))
 }
 
-func warningOrError(diag *diag.Diagnostics, warning bool, summary, error string) {
+func warningOrError(diagnostics *diag.Diagnostics, warning bool, summary, error string) {
 	if warning {
-		diag.AddWarning(summary, error)
+		diagnostics.AddWarning(summary, error)
 	} else {
-		diag.AddError(summary, error)
+		diagnostics.AddError(summary, error)
 	}
 }
 
@@ -334,19 +334,19 @@ func (r *sandboxAllocationUnitResource) Update(ctx context.Context, req resource
 	checkAllocationRequestResult(allocationUnit, &resp.Diagnostics, warningOnAllocationFailureBool, id.ValueInt64())
 }
 
-func checkAllocationRequestResult(allocationUnit *KYPOClient.SandboxAllocationUnit, diag *diag.Diagnostics, warningOnAllocationFailureBool bool, id int64) {
+func checkAllocationRequestResult(allocationUnit *KYPOClient.SandboxAllocationUnit, diagnostics *diag.Diagnostics, warningOnAllocationFailureBool bool, id int64) {
 	if allocationUnit.AllocationRequest.Stages[0] != "FINISHED" {
-		warningOrError(diag, warningOnAllocationFailureBool, "Sandbox Creation Error - Terraform Stage Failed",
+		warningOrError(diagnostics, warningOnAllocationFailureBool, "Sandbox Creation Error - Terraform Stage Failed",
 			fmt.Sprintf("Creation of sandbox allocation unit %d finished with error in Terraform stage", id))
 		return
 	}
 	if allocationUnit.AllocationRequest.Stages[1] != "FINISHED" {
-		warningOrError(diag, warningOnAllocationFailureBool, "Sandbox Creation Error - Ansible Stage Failed",
+		warningOrError(diagnostics, warningOnAllocationFailureBool, "Sandbox Creation Error - Ansible Stage Failed",
 			fmt.Sprintf("Creation of sandbox allocation unit %d finished with error in Networking Ansible stage", id))
 		return
 	}
 	if allocationUnit.AllocationRequest.Stages[2] != "FINISHED" {
-		warningOrError(diag, warningOnAllocationFailureBool, "Sandbox Creation Error - User Stage Failed",
+		warningOrError(diagnostics, warningOnAllocationFailureBool, "Sandbox Creation Error - User Stage Failed",
 			fmt.Sprintf("Creation of sandbox allocation unit %d finished with error in User Ansible stage", id))
 		return
 	}

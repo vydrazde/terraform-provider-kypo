@@ -298,12 +298,11 @@ func (r *sandboxAllocationUnitResource) Read(ctx context.Context, req resource.R
 func (r *sandboxAllocationUnitResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var id types.Int64
 	var stateWarningOnAllocationFailure, planWarningOnAllocationFailure types.Bool
-	var stateAllocationRequest, planAllocationRequest types.Object
+	var planAllocationRequest types.Object
 
 	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("id"), &id)...)
 	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("warning_on_allocation_failure"), &stateWarningOnAllocationFailure)...)
 	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("warning_on_allocation_failure"), &planWarningOnAllocationFailure)...)
-	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("allocation_request"), &stateAllocationRequest)...)
 	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("allocation_request"), &planAllocationRequest)...)
 
 	if resp.Diagnostics.HasError() {
@@ -318,7 +317,7 @@ func (r *sandboxAllocationUnitResource) Update(ctx context.Context, req resource
 
 	}
 
-	if stateAllocationRequest.Equal(planAllocationRequest) {
+	if planAllocationRequest.IsNull() || planAllocationRequest.IsUnknown() {
 		return
 	}
 

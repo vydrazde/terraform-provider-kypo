@@ -39,7 +39,7 @@ Change the `<PATH>` to the value returned from the `echo $GOBIN` command above.
 provider_installation {
 
   dev_overrides {
-      "registry.terraform.io/hashicorp/kypo" = "<PATH>"
+      "registry.terraform.io/vydrazde/kypo" = "<PATH>"
   }
 
   # For all other providers, install them directly from their origin provider

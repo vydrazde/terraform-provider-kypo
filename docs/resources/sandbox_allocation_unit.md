@@ -64,5 +64,3 @@ Read-Only:
 - `id` (Number) Id of the user
 - `mail` (String) TODO
 - `sub` (String) TODO
-
-

@@ -82,5 +82,3 @@ Read-Only:
 - `ram` (String) TODO
 - `subnet` (String) TODO
 - `vcpu` (String) Id of the user
-
-

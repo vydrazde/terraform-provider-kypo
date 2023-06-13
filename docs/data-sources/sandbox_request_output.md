@@ -26,5 +26,3 @@ Sandbox allocation request output of one of three stages. Terraform, Networking 
 ### Read-Only
 
 - `result` (String) Output of stage
-
-

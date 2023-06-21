@@ -175,7 +175,7 @@ func (r *sandboxAllocationUnitResource) Schema(_ context.Context, _ resource.Sch
 				},
 			},
 			"locked": schema.BoolAttribute{
-				MarkdownDescription: "Revision hash of the Git repository of the sandbox definition",
+				MarkdownDescription: "TODO",
 				Computed:            true,
 			},
 			"warning_on_allocation_failure": schema.BoolAttribute{

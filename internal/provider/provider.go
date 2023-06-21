@@ -61,7 +61,7 @@ func (p *KypoProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp 
 				Sensitive:           true,
 			},
 			"client_id": schema.StringAttribute{
-				MarkdownDescription: "KYPO local OIDC client ID. Will be ignored when `token` is set. Can be set with `KYPO_CLIENT_ID` environmental variable.", // TODO how to get value
+				MarkdownDescription: "KYPO local OIDC client ID. Will be ignored when `token` is set. Can be set with `KYPO_CLIENT_ID` environmental variable. See [how to get KYPO client_id](https://github.com/vydrazde/terraform-provider-kypo/wiki/How-to-get-KYPO-CRP-client_id).",
 				Optional:            true,
 			},
 		},

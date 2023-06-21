@@ -29,7 +29,7 @@ Sandbox allocation unit
 - `cleanup_request` (Attributes) Associated cleanup request (see [below for nested schema](#nestedatt--cleanup_request))
 - `created_by` (Attributes) Creator of this sandbox pool (see [below for nested schema](#nestedatt--created_by))
 - `id` (Number) Sandbox Allocation Unit Id
-- `locked` (Boolean) Revision hash of the Git repository of the sandbox definition
+- `locked` (Boolean) TODO
 
 <a id="nestedatt--allocation_request"></a>
 ### Nested Schema for `allocation_request`

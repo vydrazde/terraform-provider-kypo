@@ -94,6 +94,9 @@ func (r *sandboxAllocationUnitResource) Schema(_ context.Context, _ resource.Sch
 			"pool_id": schema.Int64Attribute{
 				MarkdownDescription: "Id of associated sandbox pool",
 				Required:            true,
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.RequiresReplace(),
+				},
 			},
 			"allocation_request": schema.SingleNestedAttribute{
 				MarkdownDescription: "Associated allocation request",

@@ -2,8 +2,10 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"strconv"
 	"terraform-provider-kypo/internal/KYPOClient"
@@ -48,6 +50,9 @@ func (r *trainingDefinitionResource) Schema(_ context.Context, _ resource.Schema
 			"content": schema.StringAttribute{
 				MarkdownDescription: "JSON with exported training definition",
 				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 		},
 	}
@@ -73,11 +78,10 @@ func (r *trainingDefinitionResource) Configure(_ context.Context, req resource.C
 }
 
 func (r *trainingDefinitionResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var url, rev string
+	var content string
 
 	// Read Terraform plan data into the model
-	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("url"), &url)...)
-	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("rev"), &rev)...)
+	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("content"), &content)...)
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -85,15 +89,15 @@ func (r *trainingDefinitionResource) Create(ctx context.Context, req resource.Cr
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	definition, err := r.client.CreateSandboxDefinition(url, rev)
+	definition, err := r.client.CreateTrainingDefinition(content)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create sandbox definition, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create training definition, got error: %s", err))
 		return
 	}
 
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log
-	tflog.Trace(ctx, fmt.Sprintf("created sandbox definition %d", definition.Id))
+	tflog.Trace(ctx, fmt.Sprintf("created training definition %d", definition.Id))
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &definition)...)
@@ -110,14 +114,15 @@ func (r *trainingDefinitionResource) Read(ctx context.Context, req resource.Read
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	definition, err := r.client.GetSandboxDefinition(id)
-	if _, ok := err.(*KYPOClient.ErrNotFound); ok {
+	definition, err := r.client.GetTrainingDefinition(id)
+	var errNotFound *KYPOClient.ErrNotFound
+	if errors.As(err, &errNotFound) {
 		resp.State.RemoveResource(ctx)
 		return
 	}
 
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read sandbox definition, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read training definition, got error: %s", err))
 		return
 	}
 
@@ -139,9 +144,9 @@ func (r *trainingDefinitionResource) Delete(ctx context.Context, req resource.De
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	err := r.client.DeleteSandboxDefinition(id)
+	err := r.client.DeleteTrainingDefinition(id)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete sandbox definition, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete training definition, got error: %s", err))
 		return
 	}
 }
@@ -149,7 +154,7 @@ func (r *trainingDefinitionResource) Delete(ctx context.Context, req resource.De
 func (r *trainingDefinitionResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	id, err := strconv.Atoi(req.ID)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to import sandbox definition, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to import training definition, got error: %s", err))
 		return
 	}
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), id)...)

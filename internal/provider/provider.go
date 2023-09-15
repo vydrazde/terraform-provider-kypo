@@ -207,6 +207,7 @@ func (p *KypoProvider) Resources(_ context.Context) []func() resource.Resource {
 		NewSandboxPoolResource,
 		NewSandboxAllocationUnitResource,
 		NewTrainingDefinitionResource,
+		NewTrainingDefinitionAdaptiveResource,
 	}
 }
 

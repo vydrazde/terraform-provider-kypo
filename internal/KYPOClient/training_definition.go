@@ -47,15 +47,6 @@ func (c *Client) CreateTrainingDefinition(content string) (*TrainingDefinition, 
 		return nil, err
 	}
 
-	title := struct {
-		Title string `json:"title"`
-	}{}
-
-	err = json.Unmarshal([]byte(content), &title)
-	if err != nil {
-		return nil, err
-	}
-
 	body, status, err := c.doRequest(req)
 	if err != nil {
 		return nil, err
@@ -79,25 +70,23 @@ func (c *Client) CreateTrainingDefinition(content string) (*TrainingDefinition, 
 		Content: content,
 	}
 
-	// Rename title to remove Uploaded
-
 	return &definition, nil
 }
 
-//func (c *Client) DeleteSandboxDefinition(definitionID int64) error {
-//	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/kypo-sandbox-service/api/v1/definitions/%d", c.Endpoint, definitionID), nil)
-//	if err != nil {
-//		return err
-//	}
-//
-//	body, status, err := c.doRequest(req)
-//	if err != nil {
-//		return err
-//	}
-//
-//	if status != http.StatusNoContent && status != http.StatusNotFound {
-//		return fmt.Errorf("status: %d, body: %s", status, body)
-//	}
-//
-//	return nil
-//}
+func (c *Client) DeleteTrainingDefinition(definitionID int64) error {
+	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/kypo-rest-training/api/v1/training-definitions/%d", c.Endpoint, definitionID), nil)
+	if err != nil {
+		return err
+	}
+
+	body, status, err := c.doRequest(req)
+	if err != nil {
+		return err
+	}
+
+	if status != http.StatusOK && status != http.StatusNotFound {
+		return fmt.Errorf("status: %d, body: %s", status, body)
+	}
+
+	return nil
+}

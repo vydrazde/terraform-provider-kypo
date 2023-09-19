@@ -35,7 +35,7 @@ resource "kypo_sandbox_definition" "test" {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("kypo_sandbox_definition.test", "url", "git@gitlab.ics.muni.cz:muni-kypo-crp/prototypes-and-examples/sandbox-definitions/terraform-provider-testing-definition.git"),
 					resource.TestCheckResourceAttr("kypo_sandbox_definition.test", "rev", os.Getenv("TF_VAR_TAG_NAME")+"-0"),
-					resource.TestCheckResourceAttr("kypo_sandbox_definition.test", "name", "general-testing-definition"),
+					resource.TestCheckResourceAttr("kypo_sandbox_definition.test", "name", "terraform-testing-definition"),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_definition.test", "id"),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_definition.test", "created_by.id"),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_definition.test", "created_by.sub"),
@@ -62,7 +62,7 @@ resource "kypo_sandbox_definition" "test" {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("kypo_sandbox_definition.test", "url", "git@gitlab.ics.muni.cz:muni-kypo-crp/prototypes-and-examples/sandbox-definitions/terraform-provider-testing-definition.git"),
 					resource.TestCheckResourceAttr("kypo_sandbox_definition.test", "rev", os.Getenv("TF_VAR_TAG_NAME")+"-1"),
-					resource.TestCheckResourceAttr("kypo_sandbox_definition.test", "name", "general-testing-definition"),
+					resource.TestCheckResourceAttr("kypo_sandbox_definition.test", "name", "terraform-testing-definition"),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_definition.test", "id"),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_definition.test", "created_by.id"),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_definition.test", "created_by.sub"),

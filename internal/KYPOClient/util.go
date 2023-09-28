@@ -15,6 +15,11 @@ type UserModel struct {
 }
 
 func (c *Client) doRequest(req *http.Request) ([]byte, int, error) {
+	err := c.refreshToken()
+	if err != nil {
+		return nil, 0, err
+	}
+
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+c.Token)
 

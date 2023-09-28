@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"time"
 )
 
 func (c *Client) signIn() (string, error) {
@@ -168,7 +169,7 @@ func (c *Client) authorizeFirstTime(httpClient http.Client, csrf string) (string
 	return token, err
 }
 
-func (c *Client) authenticateKeycloak() (string, error) {
+func (c *Client) authenticateKeycloak() error {
 	query := url.Values{}
 	query.Add("username", c.Username)
 	query.Add("password", c.Password)
@@ -178,31 +179,42 @@ func (c *Client) authenticateKeycloak() (string, error) {
 	req, err := http.NewRequest("POST", fmt.Sprintf("%s/keycloak/realms/KYPO/protocol/openid-connect/token",
 		c.Endpoint), strings.NewReader(query.Encode()))
 	if err != nil {
-		return "", err
+		return err
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return "", err
+		return err
 	}
 	if res.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("authenticateKeycloak failed, got HTTP code: %d", res.StatusCode)
+		return fmt.Errorf("authenticateKeycloak failed, got HTTP code: %d", res.StatusCode)
 	}
 
-	accessToken := struct {
+	result := struct {
 		AccessToken string `json:"access_token"`
+		ExpiresIn   int    `json:"expires_in"`
 	}{}
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	err = json.Unmarshal(body, &accessToken)
+	err = json.Unmarshal(body, &result)
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	return accessToken.AccessToken, nil
+	c.Token = result.AccessToken
+	c.TokenExpiryTime = time.Now().Add(time.Duration(result.ExpiresIn) * time.Second)
+
+	return nil
+}
+
+func (c *Client) refreshToken() error {
+	if !c.TokenExpiryTime.IsZero() && time.Now().Add(10*time.Second).After(c.TokenExpiryTime) {
+		return c.authenticateKeycloak()
+	}
+	return nil
 }

@@ -39,3 +39,19 @@ func NewClient(endpoint, clientId, username, password string) (*Client, error) {
 	client.Token = token
 	return &client, nil
 }
+
+func NewClientKeycloak(endpoint, clientId, username, password string) (*Client, error) {
+	client := Client{
+		Endpoint:   endpoint,
+		ClientID:   clientId,
+		HTTPClient: http.DefaultClient,
+		Username:   username,
+		Password:   password,
+	}
+	token, err := client.authenticateKeycloak()
+	if err != nil {
+		return nil, err
+	}
+	client.Token = token
+	return &client, nil
+}

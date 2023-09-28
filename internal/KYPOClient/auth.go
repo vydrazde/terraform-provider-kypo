@@ -1,6 +1,7 @@
 package KYPOClient
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -165,4 +166,43 @@ func (c *Client) authorizeFirstTime(httpClient http.Client, csrf string) (string
 		return "", fmt.Errorf("authorizeFirstTime failed, token is empty")
 	}
 	return token, err
+}
+
+func (c *Client) authenticateKeycloak() (string, error) {
+	query := url.Values{}
+	query.Add("username", c.Username)
+	query.Add("password", c.Password)
+	query.Add("client_id", c.ClientID)
+	query.Add("grant_type", "password")
+
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/keycloak/realms/KYPO/protocol/openid-connect/token",
+		c.Endpoint), strings.NewReader(query.Encode()))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	if res.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("authenticateKeycloak failed, got HTTP code: %d", res.StatusCode)
+	}
+
+	accessToken := struct {
+		AccessToken string `json:"access_token"`
+	}{}
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return "", err
+	}
+
+	err = json.Unmarshal(body, &accessToken)
+	if err != nil {
+		return "", err
+	}
+
+	return accessToken.AccessToken, nil
 }

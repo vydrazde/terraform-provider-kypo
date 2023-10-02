@@ -61,7 +61,7 @@ func (p *KypoProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp 
 				Sensitive:           true,
 			},
 			"client_id": schema.StringAttribute{
-				MarkdownDescription: "KYPO local OIDC client ID. Will be ignored when `token` is set. Can be set with `KYPO_CLIENT_ID` environmental variable. See [how to get KYPO client_id](https://github.com/vydrazde/terraform-provider-kypo/wiki/How-to-get-KYPO-CRP-client_id).",
+				MarkdownDescription: "KYPO local OIDC client ID. Will be ignored when `token` is set. Defaults to `KYPO-Client`. Can be set with `KYPO_CLIENT_ID` environmental variable. See [how to get KYPO client_id](https://github.com/vydrazde/terraform-provider-kypo/wiki/How-to-get-KYPO-CRP-client_id).",
 				Optional:            true,
 			},
 		},
@@ -140,6 +140,10 @@ func (p *KypoProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 		clientId = data.ClientID.ValueString()
 	}
 
+	if clientId == "" {
+		clientId = "KYPO-Client"
+	}
+
 	// If any of the expected configurations are missing, return
 	// errors with provider-specific guidance.
 	if endpoint == "" {
@@ -148,15 +152,6 @@ func (p *KypoProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 			"Missing KYPO API Endpoint",
 			"The provider cannot create the KYPO API client as there is a missing or empty value for the KYPO API endpoint. "+
 				"Set the host value in the configuration or use the KYPO_ENDPOINT environment variable. "+
-				"If either is already set, ensure the value is not empty.",
-		)
-	}
-	if clientId == "" && token == "" {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("client_id"),
-			"Missing KYPO API Client ID",
-			"The provider cannot create the KYPO API client as there is a missing or empty value for the KYPO API client ID. "+
-				"Set the host value in the configuration or use the KYPO_CLIENT_ID environment variable. "+
 				"If either is already set, ensure the value is not empty.",
 		)
 	}
@@ -181,6 +176,7 @@ func (p *KypoProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 
 	tflog.Debug(ctx, "Creating KYPO client")
 	var client *KYPOClient.Client
+
 	var err error
 	if token != "" {
 		client, err = KYPOClient.NewClientWithToken(endpoint, clientId, token)

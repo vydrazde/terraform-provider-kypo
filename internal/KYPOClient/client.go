@@ -2,15 +2,17 @@ package KYPOClient
 
 import (
 	"net/http"
+	"time"
 )
 
 type Client struct {
-	Endpoint   string
-	ClientID   string
-	HTTPClient *http.Client
-	Token      string
-	Username   string
-	Password   string
+	Endpoint        string
+	ClientID        string
+	HTTPClient      *http.Client
+	Token           string
+	TokenExpiryTime time.Time
+	Username        string
+	Password        string
 }
 
 func NewClientWithToken(endpoint, clientId, token string) (*Client, error) {
@@ -32,10 +34,9 @@ func NewClient(endpoint, clientId, username, password string) (*Client, error) {
 		Username:   username,
 		Password:   password,
 	}
-	token, err := client.signIn()
+	err := client.authenticate()
 	if err != nil {
 		return nil, err
 	}
-	client.Token = token
 	return &client, nil
 }

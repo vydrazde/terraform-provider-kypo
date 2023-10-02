@@ -1,6 +1,7 @@
 package KYPOClient
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -9,6 +10,7 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"time"
 )
 
 func (c *Client) signIn() (string, error) {
@@ -165,4 +167,76 @@ func (c *Client) authorizeFirstTime(httpClient http.Client, csrf string) (string
 		return "", fmt.Errorf("authorizeFirstTime failed, token is empty")
 	}
 	return token, err
+}
+
+func (c *Client) authenticateKeycloak() error {
+	query := url.Values{}
+	query.Add("username", c.Username)
+	query.Add("password", c.Password)
+	query.Add("client_id", c.ClientID)
+	query.Add("grant_type", "password")
+
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/keycloak/realms/KYPO/protocol/openid-connect/token",
+		c.Endpoint), strings.NewReader(query.Encode()))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	if res.StatusCode == http.StatusNotFound || res.StatusCode == http.StatusMethodNotAllowed {
+		return &ErrNotFound{ResourceName: "KYPO Keycloak endpoint"}
+	}
+	if res.StatusCode != http.StatusOK {
+		return fmt.Errorf("authenticateKeycloak failed, got HTTP code: %d", res.StatusCode)
+	}
+
+	result := struct {
+		AccessToken string `json:"access_token"`
+		ExpiresIn   int    `json:"expires_in"`
+	}{}
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		return err
+	}
+
+	c.Token = result.AccessToken
+	c.TokenExpiryTime = time.Now().Add(time.Duration(result.ExpiresIn) * time.Second)
+
+	return nil
+}
+
+func (c *Client) authenticate() error {
+	err := c.authenticateKeycloak()
+	var errNotFound *ErrNotFound
+	if errors.As(err, &errNotFound) {
+		var token string
+		token, err = c.signIn()
+		if err != nil {
+			return err
+		}
+		c.Token = token
+		return nil
+	}
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Client) refreshToken() error {
+	if !c.TokenExpiryTime.IsZero() && time.Now().Add(10*time.Second).After(c.TokenExpiryTime) {
+		return c.authenticateKeycloak()
+	}
+	return nil
 }

@@ -5,7 +5,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"os"
-	"strconv"
 	"terraform-provider-kypo/internal/KYPOClient"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -28,12 +27,11 @@ type KypoProvider struct {
 
 // KypoProviderModel describes the provider data model.
 type KypoProviderModel struct {
-	Endpoint                types.String `tfsdk:"endpoint"`
-	Username                types.String `tfsdk:"username"`
-	Password                types.String `tfsdk:"password"`
-	Token                   types.String `tfsdk:"token"`
-	ClientID                types.String `tfsdk:"client_id"`
-	UseKeycloakOidcProvider types.Bool   `tfsdk:"use_keycloak_oidc_provider"`
+	Endpoint types.String `tfsdk:"endpoint"`
+	Username types.String `tfsdk:"username"`
+	Password types.String `tfsdk:"password"`
+	Token    types.String `tfsdk:"token"`
+	ClientID types.String `tfsdk:"client_id"`
 }
 
 func (p *KypoProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -64,10 +62,6 @@ func (p *KypoProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp 
 			},
 			"client_id": schema.StringAttribute{
 				MarkdownDescription: "KYPO local OIDC client ID. Will be ignored when `token` is set. Defaults to `KYPO-Client`. Can be set with `KYPO_CLIENT_ID` environmental variable. See [how to get KYPO client_id](https://github.com/vydrazde/terraform-provider-kypo/wiki/How-to-get-KYPO-CRP-client_id).",
-				Optional:            true,
-			},
-			"use_keycloak_oidc_provider": schema.BoolAttribute{
-				MarkdownDescription: "Whether the KYPO instance uses Keycloak OIDC provider. Defaults to false. Can be set with `KYPO_KEYCLOAK`.",
 				Optional:            true,
 			},
 		},
@@ -130,20 +124,6 @@ func (p *KypoProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 	token := os.Getenv("KYPO_TOKEN")
 	clientId := os.Getenv("KYPO_CLIENT_ID")
 
-	useKeycloakOidcProvider := false
-	var err error
-	if os.Getenv("KYPO_KEYCLOAK") != "" {
-		useKeycloakOidcProvider, err = strconv.ParseBool(os.Getenv("KYPO_KEYCLOAK"))
-		if err != nil {
-			resp.Diagnostics.AddError(
-				"Unable to Create KYPO API Client",
-				"Unable to parse `KYPO_KEYCLOAK` environmental variable.\n\n"+
-					"KYPO Client Error: "+err.Error(),
-			)
-			return
-		}
-	}
-
 	if !data.Endpoint.IsNull() {
 		endpoint = data.Endpoint.ValueString()
 	}
@@ -158,9 +138,6 @@ func (p *KypoProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 	}
 	if !data.ClientID.IsNull() {
 		clientId = data.ClientID.ValueString()
-	}
-	if !data.UseKeycloakOidcProvider.IsNull() {
-		useKeycloakOidcProvider = data.UseKeycloakOidcProvider.ValueBool()
 	}
 
 	if clientId == "" {
@@ -200,10 +177,9 @@ func (p *KypoProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 	tflog.Debug(ctx, "Creating KYPO client")
 	var client *KYPOClient.Client
 
+	var err error
 	if token != "" {
 		client, err = KYPOClient.NewClientWithToken(endpoint, clientId, token)
-	} else if useKeycloakOidcProvider {
-		client, err = KYPOClient.NewClientKeycloak(endpoint, clientId, username, password)
 	} else {
 		client, err = KYPOClient.NewClient(endpoint, clientId, username, password)
 	}

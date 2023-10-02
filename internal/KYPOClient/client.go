@@ -34,26 +34,9 @@ func NewClient(endpoint, clientId, username, password string) (*Client, error) {
 		Username:   username,
 		Password:   password,
 	}
-	token, err := client.signIn()
+	err := client.authenticate()
 	if err != nil {
 		return nil, err
 	}
-	client.Token = token
-	return &client, nil
-}
-
-func NewClientKeycloak(endpoint, clientId, username, password string) (*Client, error) {
-	client := Client{
-		Endpoint:   endpoint,
-		ClientID:   clientId,
-		HTTPClient: http.DefaultClient,
-		Username:   username,
-		Password:   password,
-	}
-	err := client.authenticateKeycloak()
-	if err != nil {
-		return nil, err
-	}
-
 	return &client, nil
 }

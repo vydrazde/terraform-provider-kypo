@@ -187,6 +187,9 @@ func (c *Client) authenticateKeycloak() error {
 	if err != nil {
 		return err
 	}
+	if res.StatusCode == http.StatusNotFound || res.StatusCode == http.StatusMethodNotAllowed {
+		return &ErrNotFound{ResourceName: "KYPO Keycloak endpoint"}
+	}
 	if res.StatusCode != http.StatusOK {
 		return fmt.Errorf("authenticateKeycloak failed, got HTTP code: %d", res.StatusCode)
 	}
@@ -209,6 +212,25 @@ func (c *Client) authenticateKeycloak() error {
 	c.Token = result.AccessToken
 	c.TokenExpiryTime = time.Now().Add(time.Duration(result.ExpiresIn) * time.Second)
 
+	return nil
+}
+
+func (c *Client) authenticate() error {
+	err := c.authenticateKeycloak()
+	var errNotFound *ErrNotFound
+	if errors.As(err, &errNotFound) {
+		var token string
+		token, err = c.signIn()
+		if err != nil {
+			return err
+		}
+		c.Token = token
+		return nil
+	}
+
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

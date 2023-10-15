@@ -329,11 +329,6 @@ func (r *sandboxAllocationUnitResource) Update(ctx context.Context, req resource
 	}
 
 	allocationUnit, err := r.client.GetSandboxAllocationUnit(id.ValueInt64())
-	if _, ok := err.(*KYPOClient.ErrNotFound); ok {
-		resp.State.RemoveResource(ctx)
-		return
-	}
-
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read sandbox allocation unit, got error: %s", err))
 		return

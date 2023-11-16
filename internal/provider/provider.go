@@ -4,8 +4,8 @@ import (
 	"context"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/vydrazde/kypo-go-client/pkg/kypo"
 	"os"
-	"terraform-provider-kypo/internal/KYPOClient"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
@@ -175,13 +175,13 @@ func (p *KypoProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 	ctx = tflog.MaskFieldValuesWithFieldKeys(ctx, "kypo_password", "kypo_token")
 
 	tflog.Debug(ctx, "Creating KYPO client")
-	var client *KYPOClient.Client
+	var client *kypo.Client
 
 	var err error
 	if token != "" {
-		client, err = KYPOClient.NewClientWithToken(endpoint, clientId, token)
+		client, err = kypo.NewClientWithToken(endpoint, clientId, token)
 	} else {
-		client, err = KYPOClient.NewClient(endpoint, clientId, username, password)
+		client, err = kypo.NewClient(endpoint, clientId, username, password)
 	}
 	if err != nil {
 		resp.Diagnostics.AddError(

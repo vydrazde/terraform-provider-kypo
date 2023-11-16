@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"terraform-provider-kypo/internal/KYPOClient"
+	"github.com/vydrazde/kypo-go-client/pkg/kypo"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -27,7 +27,7 @@ func NewSandboxRequestOutputDataSource() datasource.DataSource {
 
 // sandboxRequestOutputDataSource is the data source implementation.
 type sandboxRequestOutputDataSource struct {
-	client *KYPOClient.Client
+	client *kypo.Client
 }
 
 type sandboxRequestOutput struct {
@@ -72,12 +72,12 @@ func (r *sandboxRequestOutputDataSource) Configure(_ context.Context, req dataso
 		return
 	}
 
-	client, ok := req.ProviderData.(*KYPOClient.Client)
+	client, ok := req.ProviderData.(*kypo.Client)
 
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected KYPOClient.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected kypo.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return

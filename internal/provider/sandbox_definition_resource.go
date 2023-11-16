@@ -6,8 +6,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/vydrazde/kypo-go-client/pkg/kypo"
 	"strconv"
-	"terraform-provider-kypo/internal/KYPOClient"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -26,7 +26,7 @@ func NewSandboxDefinitionResource() resource.Resource {
 
 // sandboxDefinitionResource defines the resource implementation.
 type sandboxDefinitionResource struct {
-	client *KYPOClient.Client
+	client *kypo.Client
 }
 
 func (r *sandboxDefinitionResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -104,7 +104,7 @@ func (r *sandboxDefinitionResource) Configure(_ context.Context, req resource.Co
 		return
 	}
 
-	client, ok := req.ProviderData.(*KYPOClient.Client)
+	client, ok := req.ProviderData.(*kypo.Client)
 
 	if !ok {
 		resp.Diagnostics.AddError(
@@ -156,7 +156,7 @@ func (r *sandboxDefinitionResource) Read(ctx context.Context, req resource.ReadR
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
 	definition, err := r.client.GetSandboxDefinition(id)
-	if _, ok := err.(*KYPOClient.ErrNotFound); ok {
+	if _, ok := err.(*kypo.ErrNotFound); ok {
 		resp.State.RemoveResource(ctx)
 		return
 	}

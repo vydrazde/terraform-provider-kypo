@@ -8,10 +8,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/vydrazde/kypo-go-client/pkg/kypo"
 	"golang.org/x/exp/slices"
 	"reflect"
 	"strconv"
-	"terraform-provider-kypo/internal/KYPOClient"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -31,7 +31,7 @@ func NewSandboxAllocationUnitResource() resource.Resource {
 
 // sandboxAllocationUnitResource defines the resource implementation.
 type sandboxAllocationUnitResource struct {
-	client *KYPOClient.Client
+	client *kypo.Client
 }
 
 type response struct {
@@ -48,7 +48,7 @@ func setState(ctx context.Context, stateValue any, resp response) {
 	}
 }
 
-func checkAllocationRequestResult(allocationUnit *KYPOClient.SandboxAllocationUnit, diagnostics *diag.Diagnostics, warningOnAllocationFailureBool bool, id int64) {
+func checkAllocationRequestResult(allocationUnit *kypo.SandboxAllocationUnit, diagnostics *diag.Diagnostics, warningOnAllocationFailureBool bool, id int64) {
 	if allocationUnit.AllocationRequest.Stages[0] != "FINISHED" {
 		warningOrError(diagnostics, warningOnAllocationFailureBool, "Sandbox Creation Error - Terraform Stage Failed",
 			fmt.Sprintf("Creation of sandbox allocation unit %d finished with error in Terraform stage", id))
@@ -214,12 +214,12 @@ func (r *sandboxAllocationUnitResource) Configure(_ context.Context, req resourc
 		return
 	}
 
-	client, ok := req.ProviderData.(*KYPOClient.Client)
+	client, ok := req.ProviderData.(*kypo.Client)
 
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected KYPOClient.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected kypo.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -289,7 +289,7 @@ func (r *sandboxAllocationUnitResource) Read(ctx context.Context, req resource.R
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
 	allocationUnit, err := r.client.GetSandboxAllocationUnit(id)
-	if _, ok := err.(*KYPOClient.ErrNotFound); ok {
+	if _, ok := err.(*kypo.ErrNotFound); ok {
 		resp.State.RemoveResource(ctx)
 		return
 	}
@@ -351,7 +351,7 @@ func (r *sandboxAllocationUnitResource) Update(ctx context.Context, req resource
 }
 
 func (r *sandboxAllocationUnitResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var allocationRequest *KYPOClient.SandboxRequest
+	var allocationRequest *kypo.SandboxRequest
 	var id int64
 
 	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("allocation_request"), &allocationRequest)...)

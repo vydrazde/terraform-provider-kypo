@@ -7,8 +7,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/vydrazde/kypo-go-client/pkg/kypo"
 	"strconv"
-	"terraform-provider-kypo/internal/KYPOClient"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -27,7 +27,7 @@ func NewTrainingDefinitionAdaptiveResource() resource.Resource {
 
 // trainingDefinitionAdaptiveResource defines the resource implementation.
 type trainingDefinitionAdaptiveResource struct {
-	client *KYPOClient.Client
+	client *kypo.Client
 }
 
 func (r *trainingDefinitionAdaptiveResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -64,12 +64,12 @@ func (r *trainingDefinitionAdaptiveResource) Configure(_ context.Context, req re
 		return
 	}
 
-	client, ok := req.ProviderData.(*KYPOClient.Client)
+	client, ok := req.ProviderData.(*kypo.Client)
 
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected KYPOClient.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected kypo.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -115,7 +115,7 @@ func (r *trainingDefinitionAdaptiveResource) Read(ctx context.Context, req resou
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
 	definition, err := r.client.GetTrainingDefinitionAdaptive(id)
-	var errNotFound *KYPOClient.ErrNotFound
+	var errNotFound *kypo.ErrNotFound
 	if errors.As(err, &errNotFound) {
 		resp.State.RemoveResource(ctx)
 		return

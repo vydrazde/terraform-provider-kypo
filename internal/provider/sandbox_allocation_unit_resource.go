@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -78,7 +79,7 @@ func (r *sandboxAllocationUnitResource) Metadata(_ context.Context, req resource
 	resp.TypeName = req.ProviderTypeName + "_sandbox_allocation_unit"
 }
 
-func (r *sandboxAllocationUnitResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *sandboxAllocationUnitResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
 		MarkdownDescription: "Sandbox allocation unit",
@@ -186,6 +187,7 @@ func (r *sandboxAllocationUnitResource) Schema(_ context.Context, _ resource.Sch
 					"request stages fails.",
 				Optional: true,
 			},
+			"timeouts": timeouts.AttributesAll(ctx),
 		},
 	}
 }
@@ -229,13 +231,24 @@ func (r *sandboxAllocationUnitResource) Configure(_ context.Context, req resourc
 
 func (r *sandboxAllocationUnitResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var poolId int64
+	var timeoutsValue timeouts.Value
 
-	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("pool_id"), &poolId)...)
+	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("timeouts"), &timeoutsValue)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("timeouts"), timeoutsValue)...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	createTimeout, diags := timeoutsValue.Create(ctx, time.Hour)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, createTimeout)
+	defer cancel()
 
 	allocationUnits, err := r.client.CreateSandboxAllocationUnits(ctx, poolId, 1)
 	if err != nil {
@@ -369,7 +382,7 @@ func (r *sandboxAllocationUnitResource) Delete(ctx context.Context, req resource
 		}
 	}
 
-	err := r.client.CreateSandboxCleanupRequestAwait(ctx, id)
+	err := r.client.CreateSandboxCleanupRequestAwait(ctx, id, 5*time.Second)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete sandbox allocation unit, got error: %s", err))
 		return

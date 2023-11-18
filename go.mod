@@ -5,11 +5,12 @@ go 1.18
 require (
 	github.com/hashicorp/terraform-plugin-docs v0.16.0
 	github.com/hashicorp/terraform-plugin-framework v1.3.5
+	github.com/hashicorp/terraform-plugin-framework-timeouts v0.4.1
 	github.com/hashicorp/terraform-plugin-framework-validators v0.12.0
 	github.com/hashicorp/terraform-plugin-go v0.18.0
 	github.com/hashicorp/terraform-plugin-log v0.9.0
 	github.com/hashicorp/terraform-plugin-testing v1.5.1
-	github.com/vydrazde/kypo-go-client v0.0.0-20231118143915-9b9fe698c20d
+	github.com/vydrazde/kypo-go-client v0.0.0-20231118153147-1870d6af3cd8
 	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa
 )
 

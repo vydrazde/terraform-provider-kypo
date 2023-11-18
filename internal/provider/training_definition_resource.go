@@ -89,7 +89,7 @@ func (r *trainingDefinitionResource) Create(ctx context.Context, req resource.Cr
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	definition, err := r.client.CreateTrainingDefinition(content)
+	definition, err := r.client.CreateTrainingDefinition(ctx, content)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create training definition, got error: %s", err))
 		return
@@ -114,7 +114,7 @@ func (r *trainingDefinitionResource) Read(ctx context.Context, req resource.Read
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	definition, err := r.client.GetTrainingDefinition(id)
+	definition, err := r.client.GetTrainingDefinition(ctx, id)
 	var errNotFound *kypo.ErrNotFound
 	if errors.As(err, &errNotFound) {
 		resp.State.RemoveResource(ctx)
@@ -144,7 +144,7 @@ func (r *trainingDefinitionResource) Delete(ctx context.Context, req resource.De
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	err := r.client.DeleteTrainingDefinition(id)
+	err := r.client.DeleteTrainingDefinition(ctx, id)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete training definition, got error: %s", err))
 		return

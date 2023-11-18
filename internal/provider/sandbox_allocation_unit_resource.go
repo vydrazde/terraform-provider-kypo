@@ -237,7 +237,7 @@ func (r *sandboxAllocationUnitResource) Create(ctx context.Context, req resource
 		return
 	}
 
-	allocationUnits, err := r.client.CreateSandboxAllocationUnits(poolId, 1)
+	allocationUnits, err := r.client.CreateSandboxAllocationUnits(ctx, poolId, 1)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create sandbox allocation unit, got error: %s", err))
 		return
@@ -248,7 +248,7 @@ func (r *sandboxAllocationUnitResource) Create(ctx context.Context, req resource
 		return
 	}
 
-	allocationRequest, err := r.client.PollRequestFinished(allocationUnit.AllocationRequest.Id, 5*time.Second, "allocation")
+	allocationRequest, err := r.client.PollRequestFinished(ctx, allocationUnit.AllocationRequest.Id, 5*time.Second, "allocation")
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("awaiting allocation request failed, got error: %s", err))
 		return
@@ -288,7 +288,7 @@ func (r *sandboxAllocationUnitResource) Read(ctx context.Context, req resource.R
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	allocationUnit, err := r.client.GetSandboxAllocationUnit(id)
+	allocationUnit, err := r.client.GetSandboxAllocationUnit(ctx, id)
 	if _, ok := err.(*kypo.ErrNotFound); ok {
 		resp.State.RemoveResource(ctx)
 		return
@@ -328,13 +328,13 @@ func (r *sandboxAllocationUnitResource) Update(ctx context.Context, req resource
 		return
 	}
 
-	allocationUnit, err := r.client.GetSandboxAllocationUnit(id.ValueInt64())
+	allocationUnit, err := r.client.GetSandboxAllocationUnit(ctx, id.ValueInt64())
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read sandbox allocation unit, got error: %s", err))
 		return
 	}
 
-	allocationRequest, err := r.client.PollRequestFinished(allocationUnit.AllocationRequest.Id, 5*time.Second, "allocation")
+	allocationRequest, err := r.client.PollRequestFinished(ctx, allocationUnit.AllocationRequest.Id, 5*time.Second, "allocation")
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("awaiting allocation request failed, got error: %s", err))
 		return
@@ -362,14 +362,14 @@ func (r *sandboxAllocationUnitResource) Delete(ctx context.Context, req resource
 	}
 
 	if slices.Contains(allocationRequest.Stages, "RUNNING") {
-		err := r.client.CancelSandboxAllocationRequest(allocationRequest.Id)
+		err := r.client.CancelSandboxAllocationRequest(ctx, allocationRequest.Id)
 		if err != nil {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to cancel sandbox allocation unit allocation request, got error: %s", err))
 			return
 		}
 	}
 
-	err := r.client.CreateSandboxCleanupRequestAwait(id)
+	err := r.client.CreateSandboxCleanupRequestAwait(ctx, id)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete sandbox allocation unit, got error: %s", err))
 		return

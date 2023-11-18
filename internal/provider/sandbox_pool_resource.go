@@ -219,7 +219,7 @@ func (r *sandboxPoolResource) Create(ctx context.Context, req resource.CreateReq
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	pool, err := r.client.CreateSandboxPool(definitionId, maxSize)
+	pool, err := r.client.CreateSandboxPool(ctx, definitionId, maxSize)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create sandbox pool, got error: %s", err))
 		return
@@ -244,7 +244,7 @@ func (r *sandboxPoolResource) Read(ctx context.Context, req resource.ReadRequest
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	pool, err := r.client.GetSandboxPool(id)
+	pool, err := r.client.GetSandboxPool(ctx, id)
 	if _, ok := err.(*kypo.ErrNotFound); ok {
 		resp.State.RemoveResource(ctx)
 		return
@@ -273,7 +273,7 @@ func (r *sandboxPoolResource) Delete(ctx context.Context, req resource.DeleteReq
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	err := r.client.DeleteSandboxPool(id)
+	err := r.client.DeleteSandboxPool(ctx, id)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete sandbox pool, got error: %s", err))
 		return

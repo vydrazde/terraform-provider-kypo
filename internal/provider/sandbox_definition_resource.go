@@ -130,7 +130,7 @@ func (r *sandboxDefinitionResource) Create(ctx context.Context, req resource.Cre
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	definition, err := r.client.CreateSandboxDefinition(url, rev)
+	definition, err := r.client.CreateSandboxDefinition(ctx, url, rev)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create sandbox definition, got error: %s", err))
 		return
@@ -155,7 +155,7 @@ func (r *sandboxDefinitionResource) Read(ctx context.Context, req resource.ReadR
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	definition, err := r.client.GetSandboxDefinition(id)
+	definition, err := r.client.GetSandboxDefinition(ctx, id)
 	if _, ok := err.(*kypo.ErrNotFound); ok {
 		resp.State.RemoveResource(ctx)
 		return
@@ -184,7 +184,7 @@ func (r *sandboxDefinitionResource) Delete(ctx context.Context, req resource.Del
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	err := r.client.DeleteSandboxDefinition(id)
+	err := r.client.DeleteSandboxDefinition(ctx, id)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete sandbox definition, got error: %s", err))
 		return

@@ -9,7 +9,7 @@ require (
 	github.com/hashicorp/terraform-plugin-go v0.18.0
 	github.com/hashicorp/terraform-plugin-log v0.9.0
 	github.com/hashicorp/terraform-plugin-testing v1.5.1
-	github.com/vydrazde/kypo-go-client v0.0.0-20231116112821-84c7762c4c96
+	github.com/vydrazde/kypo-go-client v0.0.0-20231118143915-9b9fe698c20d
 	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa
 )
 

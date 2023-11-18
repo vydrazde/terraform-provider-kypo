@@ -98,7 +98,7 @@ func (r *sandboxRequestOutputDataSource) Read(ctx context.Context, req datasourc
 		requestOutput.Stage = types.StringValue("user-ansible")
 	}
 
-	clientRequestOutput, err := r.client.GetSandboxRequestAnsibleOutputs(requestOutput.Id.ValueInt64(),
+	clientRequestOutput, err := r.client.GetSandboxRequestAnsibleOutputs(ctx, requestOutput.Id.ValueInt64(),
 		1, int64MaxValue, requestOutput.Stage.ValueString())
 
 	if err != nil {

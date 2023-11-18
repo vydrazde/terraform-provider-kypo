@@ -174,6 +174,8 @@ github.com/vmihailenco/tagparser/v2 v2.0.0 h1:y09buUbR+b5aycVFQs/g70pqKVZNBmxwAh
 github.com/vmihailenco/tagparser/v2 v2.0.0/go.mod h1:Wri+At7QHww0WTrCBeu4J6bNtoV6mEfg5OIWRZA9qds=
 github.com/vydrazde/kypo-go-client v0.0.0-20231116112821-84c7762c4c96 h1:YNIikTvKacYK4++WEW4xWSqiN0JhGeS2YGsatB6doTY=
 github.com/vydrazde/kypo-go-client v0.0.0-20231116112821-84c7762c4c96/go.mod h1:XPMC6hFlw3ML/BmEJ/3zVAsm9kiGOKuaM1iDRV47TLw=
+github.com/vydrazde/kypo-go-client v0.0.0-20231118143915-9b9fe698c20d h1:YF5FD2kzb9vibEcBsVzQ4uTY8c/x7YPc8TEorcmBgzo=
+github.com/vydrazde/kypo-go-client v0.0.0-20231118143915-9b9fe698c20d/go.mod h1:XPMC6hFlw3ML/BmEJ/3zVAsm9kiGOKuaM1iDRV47TLw=
 github.com/xanzy/ssh-agent v0.3.3 h1:+/15pJfg/RsTxqYcX6fHqOXZwwMP+2VyYWJeWM2qQFM=
 github.com/zclconf/go-cty v1.13.3 h1:m+b9q3YDbg6Bec5rr+KGy1MzEVzY/jC2X+YX4yqKtHI=
 github.com/zclconf/go-cty v1.13.3/go.mod h1:YKQzy/7pZ7iq2jNFzy5go57xdxdWoLLpaEp4u238AE0=

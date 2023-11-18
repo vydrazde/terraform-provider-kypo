@@ -89,7 +89,7 @@ func (r *trainingDefinitionAdaptiveResource) Create(ctx context.Context, req res
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	definition, err := r.client.CreateTrainingDefinitionAdaptive(content)
+	definition, err := r.client.CreateTrainingDefinitionAdaptive(ctx, content)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create training definition adaptive, got error: %s", err))
 		return
@@ -114,7 +114,7 @@ func (r *trainingDefinitionAdaptiveResource) Read(ctx context.Context, req resou
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	definition, err := r.client.GetTrainingDefinitionAdaptive(id)
+	definition, err := r.client.GetTrainingDefinitionAdaptive(ctx, id)
 	var errNotFound *kypo.ErrNotFound
 	if errors.As(err, &errNotFound) {
 		resp.State.RemoveResource(ctx)
@@ -144,7 +144,7 @@ func (r *trainingDefinitionAdaptiveResource) Delete(ctx context.Context, req res
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	err := r.client.DeleteTrainingDefinitionAdaptive(id)
+	err := r.client.DeleteTrainingDefinitionAdaptive(ctx, id)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete training definition adaptive, got error: %s", err))
 		return

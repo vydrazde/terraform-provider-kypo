@@ -292,12 +292,24 @@ func (r *sandboxAllocationUnitResource) Create(ctx context.Context, req resource
 
 func (r *sandboxAllocationUnitResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var id int64
+	var timeoutsValue timeouts.Value
 
 	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("id"), &id)...)
+	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("timeouts"), &timeoutsValue)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("timeouts"), timeoutsValue)...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	readTimeout, diags := timeoutsValue.Read(ctx, 5*time.Minute)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, readTimeout)
+	defer cancel()
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
@@ -319,15 +331,27 @@ func (r *sandboxAllocationUnitResource) Update(ctx context.Context, req resource
 	var id types.Int64
 	var stateWarningOnAllocationFailure, planWarningOnAllocationFailure types.Bool
 	var planAllocationRequest types.Object
+	var timeoutsValue timeouts.Value
 
 	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("id"), &id)...)
 	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("warning_on_allocation_failure"), &stateWarningOnAllocationFailure)...)
 	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("warning_on_allocation_failure"), &planWarningOnAllocationFailure)...)
 	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("allocation_request"), &planAllocationRequest)...)
+	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("timeouts"), &timeoutsValue)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("timeouts"), timeoutsValue)...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	updateTimeout, diags := timeoutsValue.Update(ctx, time.Hour)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, updateTimeout)
+	defer cancel()
 
 	if !stateWarningOnAllocationFailure.Equal(planWarningOnAllocationFailure) {
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("warning_on_allocation_failure"), planWarningOnAllocationFailure)...)
@@ -366,13 +390,24 @@ func (r *sandboxAllocationUnitResource) Update(ctx context.Context, req resource
 func (r *sandboxAllocationUnitResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var allocationRequest *kypo.SandboxRequest
 	var id int64
+	var timeoutsValue timeouts.Value
 
 	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("allocation_request"), &allocationRequest)...)
 	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("id"), &id)...)
+	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("timeouts"), &timeoutsValue)...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	deleteTimeout, diags := timeoutsValue.Delete(ctx, time.Minute*15)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, deleteTimeout)
+	defer cancel()
 
 	if slices.Contains(allocationRequest.Stages, "RUNNING") {
 		err := r.client.CancelSandboxAllocationRequest(ctx, allocationRequest.Id)

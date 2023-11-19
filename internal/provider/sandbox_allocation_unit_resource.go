@@ -87,20 +87,20 @@ func (r *sandboxAllocationUnitResource) Schema(ctx context.Context, _ resource.S
 		Attributes: map[string]schema.Attribute{
 			"id": schema.Int64Attribute{
 				Computed:            true,
-				MarkdownDescription: "Sandbox Allocation Unit Id",
+				MarkdownDescription: "Id of the sandbox allocation unit",
 				PlanModifiers: []planmodifier.Int64{
 					int64planmodifier.UseStateForUnknown(),
 				},
 			},
 			"pool_id": schema.Int64Attribute{
-				MarkdownDescription: "Id of associated sandbox pool",
+				MarkdownDescription: "Id of the associated sandbox pool",
 				Required:            true,
 				PlanModifiers: []planmodifier.Int64{
 					int64planmodifier.RequiresReplace(),
 				},
 			},
 			"allocation_request": schema.SingleNestedAttribute{
-				MarkdownDescription: "Associated allocation request",
+				MarkdownDescription: "Allocation request of the allocation unit",
 				Computed:            true,
 				Attributes: map[string]schema.Attribute{
 					"id": schema.Int64Attribute{
@@ -113,12 +113,12 @@ func (r *sandboxAllocationUnitResource) Schema(ctx context.Context, _ resource.S
 					},
 					"created": schema.StringAttribute{
 						Computed:            true,
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Date and time when the allocation request was created",
 					},
 					"stages": schema.ListAttribute{
 						Computed:            true,
 						ElementType:         types.StringType,
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Statuses of the allocation stages. List of three strings, where each is one of `IN_QUEUE`, `FINISHED`, `FAILED` or `RUNNING`",
 						PlanModifiers: []planmodifier.List{
 							allocationUnitStatePlanModifier{},
 						},
@@ -126,7 +126,7 @@ func (r *sandboxAllocationUnitResource) Schema(ctx context.Context, _ resource.S
 				},
 			},
 			"cleanup_request": schema.SingleNestedAttribute{
-				MarkdownDescription: "Associated cleanup request",
+				MarkdownDescription: "Cleanup request of the allocation unit",
 				Computed:            true,
 				Attributes: map[string]schema.Attribute{
 					"id": schema.Int64Attribute{
@@ -135,21 +135,21 @@ func (r *sandboxAllocationUnitResource) Schema(ctx context.Context, _ resource.S
 					},
 					"allocation_unit_id": schema.Int64Attribute{
 						Computed:            true,
-						MarkdownDescription: "Id of the associated allocation unit",
+						MarkdownDescription: "Id of the allocation unit",
 					},
 					"created": schema.StringAttribute{
 						Computed:            true,
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Date and time when the allocation request was created",
 					},
 					"stages": schema.ListAttribute{
 						Computed:            true,
 						ElementType:         types.StringType,
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Statuses of cleanup stages. List of three strings, where each is one of `IN_QUEUE`, `FINISHED`, `FAILED` or `RUNNING`",
 					},
 				},
 			},
 			"created_by": schema.SingleNestedAttribute{
-				MarkdownDescription: "Creator of this sandbox pool",
+				MarkdownDescription: "Who created the sandbox allocation unit",
 				Computed:            true,
 				Attributes: map[string]schema.Attribute{
 					"id": schema.Int64Attribute{
@@ -157,35 +157,34 @@ func (r *sandboxAllocationUnitResource) Schema(ctx context.Context, _ resource.S
 						MarkdownDescription: "Id of the user",
 					},
 					"sub": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Sub of the user as given by an OIDC provider",
 						Computed:            true,
 					},
 					"full_name": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Full name of the user",
 						Computed:            true,
 					},
 					"given_name": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Given name of the user",
 						Computed:            true,
 					},
 					"family_name": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Family name of the user",
 						Computed:            true,
 					},
 					"mail": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Email of the user",
 						Computed:            true,
 					},
 				},
 			},
 			"locked": schema.BoolAttribute{
-				MarkdownDescription: "TODO",
+				MarkdownDescription: "Whether the allocation unit is locked. The allocation unit is locked when it is claimed by a Trainee and has an associated training run",
 				Computed:            true,
 			},
 			"warning_on_allocation_failure": schema.BoolAttribute{
-				MarkdownDescription: "If `true`, will emit a warning instead of error when one of the allocation " +
-					"request stages fails.",
-				Optional: true,
+				MarkdownDescription: "Whether to emit a warning instead of error when one of the allocation request stages fails",
+				Optional:            true,
 			},
 			"timeouts": timeouts.AttributesAll(ctx),
 		},

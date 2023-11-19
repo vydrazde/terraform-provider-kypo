@@ -41,7 +41,7 @@ func (r *sandboxDefinitionResource) Schema(_ context.Context, _ resource.SchemaR
 		Attributes: map[string]schema.Attribute{
 			"id": schema.Int64Attribute{
 				Computed:            true,
-				MarkdownDescription: "Example identifier",
+				MarkdownDescription: "Id of the sandbox definition",
 				PlanModifiers: []planmodifier.Int64{
 					int64planmodifier.UseStateForUnknown(),
 				},
@@ -65,7 +65,7 @@ func (r *sandboxDefinitionResource) Schema(_ context.Context, _ resource.SchemaR
 				},
 			},
 			"created_by": schema.SingleNestedAttribute{
-				MarkdownDescription: "Creator of this sandbox definition",
+				MarkdownDescription: "Who created the sandbox definition",
 				Computed:            true,
 				Attributes: map[string]schema.Attribute{
 					"id": schema.Int64Attribute{
@@ -73,23 +73,23 @@ func (r *sandboxDefinitionResource) Schema(_ context.Context, _ resource.SchemaR
 						MarkdownDescription: "Id of the user",
 					},
 					"sub": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Sub of the user as given by an OIDC provider",
 						Computed:            true,
 					},
 					"full_name": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Full name of the user",
 						Computed:            true,
 					},
 					"given_name": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Given name of the user",
 						Computed:            true,
 					},
 					"family_name": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Family name of the user",
 						Computed:            true,
 					},
 					"mail": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Email of the user",
 						Computed:            true,
 					},
 				},

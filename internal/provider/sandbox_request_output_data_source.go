@@ -44,24 +44,23 @@ func (r *sandboxRequestOutputDataSource) Metadata(_ context.Context, req datasou
 // Schema defines the schema for the data source.
 func (r *sandboxRequestOutputDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Sandbox allocation request output of one of three stages. Terraform, Networking Ansible or User Ansible.",
+		MarkdownDescription: "Sandbox allocation request output of one of three stages, which are terraform, networking-ansible or user-ansible.",
 
 		Attributes: map[string]schema.Attribute{
 			"id": schema.Int64Attribute{
 				Required:            true,
-				MarkdownDescription: "Sandbox Allocation Request Id",
+				MarkdownDescription: "Id of the sandbox allocation request to read the output from. The sandbox allocation request is always the same as sandbox allocation unit id",
 			},
 			"stage": schema.StringAttribute{
-				Optional: true,
-				MarkdownDescription: "Sandbox Request stage to get the output of. Must be one of `user-ansible`, " +
-					"`networking-ansible` or `terraform`. Defaults to `user-ansible`",
+				Optional:            true,
+				MarkdownDescription: "Sandbox request stage to get the output of. Must be one of `user-ansible`, `networking-ansible` or `terraform`. Defaults to `user-ansible`",
 				Validators: []validator.String{
 					stringvalidator.OneOf([]string{"user-ansible", "networking-ansible", "terraform"}...),
 				},
 			},
 			"result": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "Output of stage",
+				MarkdownDescription: "The resulting output of the stage, concatenated into a single string",
 			},
 		},
 	}

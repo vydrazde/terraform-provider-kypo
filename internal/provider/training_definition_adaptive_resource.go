@@ -37,7 +37,7 @@ func (r *trainingDefinitionAdaptiveResource) Metadata(_ context.Context, req res
 func (r *trainingDefinitionAdaptiveResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "Training definition adaptive",
+		MarkdownDescription: "Adaptive training definition",
 
 		Attributes: map[string]schema.Attribute{
 			"id": schema.Int64Attribute{
@@ -48,7 +48,7 @@ func (r *trainingDefinitionAdaptiveResource) Schema(_ context.Context, _ resourc
 				},
 			},
 			"content": schema.StringAttribute{
-				MarkdownDescription: "JSON with exported training definition",
+				MarkdownDescription: "JSON with the exported training definition",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),

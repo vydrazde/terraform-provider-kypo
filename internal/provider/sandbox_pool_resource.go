@@ -40,36 +40,36 @@ func (r *sandboxPoolResource) Schema(_ context.Context, _ resource.SchemaRequest
 		Attributes: map[string]schema.Attribute{
 			"id": schema.Int64Attribute{
 				Computed:            true,
-				MarkdownDescription: "Sandbox Pool Id",
+				MarkdownDescription: "Id of the sandbox pool",
 				PlanModifiers: []planmodifier.Int64{
 					int64planmodifier.UseStateForUnknown(),
 				},
 			},
 			"size": schema.Int64Attribute{
-				MarkdownDescription: "Current number of sandboxes",
+				MarkdownDescription: "Current number of allocated sandbox allocation units",
 				Computed:            true,
 			},
 			"max_size": schema.Int64Attribute{
-				MarkdownDescription: "Maximum number of sandboxes",
+				MarkdownDescription: "Maximum number of allocated sandbox allocation units",
 				Required:            true,
 				PlanModifiers: []planmodifier.Int64{
 					int64planmodifier.RequiresReplace(),
 				},
 			},
 			"lock_id": schema.Int64Attribute{
-				MarkdownDescription: "Id of associated lock",
+				MarkdownDescription: "Id of the associated lock",
 				Computed:            true,
 			},
 			"rev": schema.StringAttribute{
-				MarkdownDescription: "Revision of the associated Git repository of the sandbox definition",
+				MarkdownDescription: "Revision of the associated Git repository used for the sandbox pool",
 				Computed:            true,
 			},
 			"rev_sha": schema.StringAttribute{
-				MarkdownDescription: "Revision hash of the Git repository of the sandbox definition",
+				MarkdownDescription: "Revision hash of the associated Git repository used for the sandbox pool",
 				Computed:            true,
 			},
 			"created_by": schema.SingleNestedAttribute{
-				MarkdownDescription: "Creator of this sandbox pool",
+				MarkdownDescription: "Who created the sandbox pool",
 				Computed:            true,
 				Attributes: map[string]schema.Attribute{
 					"id": schema.Int64Attribute{
@@ -77,53 +77,53 @@ func (r *sandboxPoolResource) Schema(_ context.Context, _ resource.SchemaRequest
 						MarkdownDescription: "Id of the user",
 					},
 					"sub": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Sub of the user as given by an OIDC provider",
 						Computed:            true,
 					},
 					"full_name": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Full name of the user",
 						Computed:            true,
 					},
 					"given_name": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Given name of the user",
 						Computed:            true,
 					},
 					"family_name": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Family name of the user",
 						Computed:            true,
 					},
 					"mail": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Email of the user",
 						Computed:            true,
 					},
 				},
 			},
 			"hardware_usage": schema.SingleNestedAttribute{
-				MarkdownDescription: "Current resource usage",
+				MarkdownDescription: "Current resource usage by all allocation units in the pool",
 				Computed:            true,
 				Attributes: map[string]schema.Attribute{
 					"vcpu": schema.StringAttribute{
+						MarkdownDescription: "The percentage of used vCPUs relative to the cloud quota",
 						Computed:            true,
-						MarkdownDescription: "Id of the user",
 					},
 					"ram": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "The percentage of used RAM relative to the cloud quota",
 						Computed:            true,
 					},
 					"instances": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "The percentage of used instances relative to the cloud quota",
 						Computed:            true,
 					},
 					"network": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "The percentage of used networks relative to the cloud quota",
 						Computed:            true,
 					},
 					"subnet": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "The percentage of used subnets relative to the cloud quota",
 						Computed:            true,
 					},
 					"port": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "The percentage of used ports relative to the cloud quota",
 						Computed:            true,
 					},
 				},
@@ -133,7 +133,7 @@ func (r *sandboxPoolResource) Schema(_ context.Context, _ resource.SchemaRequest
 				Required:            true,
 				Attributes: map[string]schema.Attribute{
 					"id": schema.Int64Attribute{
-						MarkdownDescription: "Id of associated sandbox definition",
+						MarkdownDescription: "Id of the associated sandbox definition",
 						Required:            true,
 						PlanModifiers: []planmodifier.Int64{
 							int64planmodifier.RequiresReplace(),
@@ -152,7 +152,7 @@ func (r *sandboxPoolResource) Schema(_ context.Context, _ resource.SchemaRequest
 						Computed:            true,
 					},
 					"created_by": schema.SingleNestedAttribute{
-						MarkdownDescription: "Creator of this sandbox definition",
+						MarkdownDescription: "Who created the sandbox definition",
 						Computed:            true,
 						Attributes: map[string]schema.Attribute{
 							"id": schema.Int64Attribute{
@@ -160,23 +160,23 @@ func (r *sandboxPoolResource) Schema(_ context.Context, _ resource.SchemaRequest
 								MarkdownDescription: "Id of the user",
 							},
 							"sub": schema.StringAttribute{
-								MarkdownDescription: "TODO",
+								MarkdownDescription: "Sub of the user as given by an OIDC provider",
 								Computed:            true,
 							},
 							"full_name": schema.StringAttribute{
-								MarkdownDescription: "TODO",
+								MarkdownDescription: "Full name of the user",
 								Computed:            true,
 							},
 							"given_name": schema.StringAttribute{
-								MarkdownDescription: "TODO",
+								MarkdownDescription: "Given name of the user",
 								Computed:            true,
 							},
 							"family_name": schema.StringAttribute{
-								MarkdownDescription: "TODO",
+								MarkdownDescription: "Family name of the user",
 								Computed:            true,
 							},
 							"mail": schema.StringAttribute{
-								MarkdownDescription: "TODO",
+								MarkdownDescription: "Email of the user",
 								Computed:            true,
 							},
 						},

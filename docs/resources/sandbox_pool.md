@@ -32,28 +32,28 @@ resource "kypo_sandbox_pool" "example" {
 ### Required
 
 - `definition` (Attributes) The associated sandbox definition (see [below for nested schema](#nestedatt--definition))
-- `max_size` (Number) Maximum number of sandboxes
+- `max_size` (Number) Maximum number of allocated sandbox allocation units
 
 ### Read-Only
 
-- `created_by` (Attributes) Creator of this sandbox pool (see [below for nested schema](#nestedatt--created_by))
-- `hardware_usage` (Attributes) Current resource usage (see [below for nested schema](#nestedatt--hardware_usage))
-- `id` (Number) Sandbox Pool Id
-- `lock_id` (Number) Id of associated lock
-- `rev` (String) Revision of the associated Git repository of the sandbox definition
-- `rev_sha` (String) Revision hash of the Git repository of the sandbox definition
-- `size` (Number) Current number of sandboxes
+- `created_by` (Attributes) Who created the sandbox pool (see [below for nested schema](#nestedatt--created_by))
+- `hardware_usage` (Attributes) Current resource usage by all allocation units in the pool (see [below for nested schema](#nestedatt--hardware_usage))
+- `id` (Number) Id of the sandbox pool
+- `lock_id` (Number) Id of the associated lock
+- `rev` (String) Revision of the associated Git repository used for the sandbox pool
+- `rev_sha` (String) Revision hash of the associated Git repository used for the sandbox pool
+- `size` (Number) Current number of allocated sandbox allocation units
 
 <a id="nestedatt--definition"></a>
 ### Nested Schema for `definition`
 
 Required:
 
-- `id` (Number) Id of associated sandbox definition
+- `id` (Number) Id of the associated sandbox definition
 
 Read-Only:
 
-- `created_by` (Attributes) Creator of this sandbox definition (see [below for nested schema](#nestedatt--definition--created_by))
+- `created_by` (Attributes) Who created the sandbox definition (see [below for nested schema](#nestedatt--definition--created_by))
 - `name` (String) Name of the sandbox definition
 - `rev` (String) Revision of the Git repository of the sandbox definition
 - `url` (String) Url to the Git repository of the sandbox definition
@@ -63,12 +63,12 @@ Read-Only:
 
 Read-Only:
 
-- `family_name` (String) TODO
-- `full_name` (String) TODO
-- `given_name` (String) TODO
+- `family_name` (String) Family name of the user
+- `full_name` (String) Full name of the user
+- `given_name` (String) Given name of the user
 - `id` (Number) Id of the user
-- `mail` (String) TODO
-- `sub` (String) TODO
+- `mail` (String) Email of the user
+- `sub` (String) Sub of the user as given by an OIDC provider
 
 
 
@@ -77,12 +77,12 @@ Read-Only:
 
 Read-Only:
 
-- `family_name` (String) TODO
-- `full_name` (String) TODO
-- `given_name` (String) TODO
+- `family_name` (String) Family name of the user
+- `full_name` (String) Full name of the user
+- `given_name` (String) Given name of the user
 - `id` (Number) Id of the user
-- `mail` (String) TODO
-- `sub` (String) TODO
+- `mail` (String) Email of the user
+- `sub` (String) Sub of the user as given by an OIDC provider
 
 
 <a id="nestedatt--hardware_usage"></a>
@@ -90,9 +90,9 @@ Read-Only:
 
 Read-Only:
 
-- `instances` (String) TODO
-- `network` (String) TODO
-- `port` (String) TODO
-- `ram` (String) TODO
-- `subnet` (String) TODO
-- `vcpu` (String) Id of the user
+- `instances` (String) The percentage of used instances relative to the cloud quota
+- `network` (String) The percentage of used networks relative to the cloud quota
+- `port` (String) The percentage of used ports relative to the cloud quota
+- `ram` (String) The percentage of used RAM relative to the cloud quota
+- `subnet` (String) The percentage of used subnets relative to the cloud quota
+- `vcpu` (String) The percentage of used vCPUs relative to the cloud quota

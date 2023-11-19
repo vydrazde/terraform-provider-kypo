@@ -3,12 +3,12 @@
 page_title: "kypo_training_definition_adaptive Resource - terraform-provider-kypo"
 subcategory: ""
 description: |-
-  Training definition adaptive
+  Adaptive training definition
 ---
 
 # kypo_training_definition_adaptive (Resource)
 
-Training definition adaptive
+Adaptive training definition
 
 ## Example Usage
 
@@ -34,7 +34,7 @@ resource "kypo_training_definition_adaptive" "example" {
 
 ### Required
 
-- `content` (String) JSON with exported training definition
+- `content` (String) JSON with the exported training definition
 
 ### Read-Only
 

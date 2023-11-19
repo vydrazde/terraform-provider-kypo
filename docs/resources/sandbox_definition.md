@@ -29,8 +29,8 @@ resource "kypo_sandbox_definition" "example" {
 
 ### Read-Only
 
-- `created_by` (Attributes) Creator of this sandbox definition (see [below for nested schema](#nestedatt--created_by))
-- `id` (Number) Example identifier
+- `created_by` (Attributes) Who created the sandbox definition (see [below for nested schema](#nestedatt--created_by))
+- `id` (Number) Id of the sandbox definition
 - `name` (String) Name of the sandbox definition
 
 <a id="nestedatt--created_by"></a>
@@ -38,9 +38,9 @@ resource "kypo_sandbox_definition" "example" {
 
 Read-Only:
 
-- `family_name` (String) TODO
-- `full_name` (String) TODO
-- `given_name` (String) TODO
+- `family_name` (String) Family name of the user
+- `full_name` (String) Full name of the user
+- `given_name` (String) Given name of the user
 - `id` (Number) Id of the user
-- `mail` (String) TODO
-- `sub` (String) TODO
+- `mail` (String) Email of the user
+- `sub` (String) Sub of the user as given by an OIDC provider

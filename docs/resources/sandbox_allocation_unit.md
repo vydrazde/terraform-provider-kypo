@@ -35,20 +35,20 @@ resource "kypo_sandbox_allocation_unit" "example" {
 
 ### Required
 
-- `pool_id` (Number) Id of associated sandbox pool
+- `pool_id` (Number) Id of the associated sandbox pool
 
 ### Optional
 
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
-- `warning_on_allocation_failure` (Boolean) If `true`, will emit a warning instead of error when one of the allocation request stages fails.
+- `warning_on_allocation_failure` (Boolean) Whether to emit a warning instead of error when one of the allocation request stages fails
 
 ### Read-Only
 
-- `allocation_request` (Attributes) Associated allocation request (see [below for nested schema](#nestedatt--allocation_request))
-- `cleanup_request` (Attributes) Associated cleanup request (see [below for nested schema](#nestedatt--cleanup_request))
-- `created_by` (Attributes) Creator of this sandbox pool (see [below for nested schema](#nestedatt--created_by))
-- `id` (Number) Sandbox Allocation Unit Id
-- `locked` (Boolean) TODO
+- `allocation_request` (Attributes) Allocation request of the allocation unit (see [below for nested schema](#nestedatt--allocation_request))
+- `cleanup_request` (Attributes) Cleanup request of the allocation unit (see [below for nested schema](#nestedatt--cleanup_request))
+- `created_by` (Attributes) Who created the sandbox allocation unit (see [below for nested schema](#nestedatt--created_by))
+- `id` (Number) Id of the sandbox allocation unit
+- `locked` (Boolean) Whether the allocation unit is locked. The allocation unit is locked when it is claimed by a Trainee and has an associated training run
 
 <a id="nestedatt--timeouts"></a>
 ### Nested Schema for `timeouts`
@@ -67,9 +67,9 @@ Optional:
 Read-Only:
 
 - `allocation_unit_id` (Number) Id of the associated allocation unit
-- `created` (String) TODO
+- `created` (String) Date and time when the allocation request was created
 - `id` (Number) Id of the allocation request
-- `stages` (List of String) TODO
+- `stages` (List of String) Statuses of the allocation stages. List of three strings, where each is one of `IN_QUEUE`, `FINISHED`, `FAILED` or `RUNNING`
 
 
 <a id="nestedatt--cleanup_request"></a>
@@ -77,10 +77,10 @@ Read-Only:
 
 Read-Only:
 
-- `allocation_unit_id` (Number) Id of the associated allocation unit
-- `created` (String) TODO
+- `allocation_unit_id` (Number) Id of the allocation unit
+- `created` (String) Date and time when the allocation request was created
 - `id` (Number) Id of the cleanup request
-- `stages` (List of String) TODO
+- `stages` (List of String) Statuses of cleanup stages. List of three strings, where each is one of `IN_QUEUE`, `FINISHED`, `FAILED` or `RUNNING`
 
 
 <a id="nestedatt--created_by"></a>
@@ -88,9 +88,9 @@ Read-Only:
 
 Read-Only:
 
-- `family_name` (String) TODO
-- `full_name` (String) TODO
-- `given_name` (String) TODO
+- `family_name` (String) Family name of the user
+- `full_name` (String) Full name of the user
+- `given_name` (String) Given name of the user
 - `id` (Number) Id of the user
-- `mail` (String) TODO
-- `sub` (String) TODO
+- `mail` (String) Email of the user
+- `sub` (String) Sub of the user as given by an OIDC provider

@@ -115,8 +115,7 @@ func (r *trainingDefinitionResource) Read(ctx context.Context, req resource.Read
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
 	definition, err := r.client.GetTrainingDefinition(ctx, id)
-	var errNotFound *kypo.ErrNotFound
-	if errors.As(err, &errNotFound) {
+	if errors.Is(err, kypo.ErrNotFound) {
 		resp.State.RemoveResource(ctx)
 		return
 	}

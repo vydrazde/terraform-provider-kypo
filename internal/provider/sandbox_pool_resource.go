@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -245,7 +246,7 @@ func (r *sandboxPoolResource) Read(ctx context.Context, req resource.ReadRequest
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
 	pool, err := r.client.GetSandboxPool(ctx, id)
-	if _, ok := err.(*kypo.ErrNotFound); ok {
+	if errors.Is(err, kypo.ErrNotFound) {
 		resp.State.RemoveResource(ctx)
 		return
 	}

@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -22,6 +23,7 @@ import (
 	"golang.org/x/exp/slices"
 
 	"terraform-provider-kypo/internal/plan_modifiers"
+	"terraform-provider-kypo/internal/validators"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -95,6 +97,25 @@ func setTimeout(diags *diag.Diagnostics, ctx context.Context, timeoutsValue time
 	}
 
 	return context.WithTimeout(ctx, timeout)
+}
+
+func getPollTime(diags *diag.Diagnostics, ctx context.Context, pollTimeObject types.Object, pollTimeName string, pollTimeDefault time.Duration) time.Duration {
+	value, ok := pollTimeObject.Attributes()[pollTimeName]
+	if !ok || value.IsNull() || value.IsUnknown() {
+		tflog.Info(ctx, pollTimeName+" timeout configuration not found, null or unknown, using default "+pollTimeDefault.String())
+		return pollTimeDefault
+	}
+
+	pollTime, err := time.ParseDuration(value.(types.String).ValueString())
+	if err != nil {
+		diags.AddError("Poll Time Cannot Be Parsed",
+			fmt.Sprintf("poll time for %q cannot be parsed, %s", pollTimeName, err),
+		)
+
+		return pollTimeDefault
+	}
+
+	return pollTime
 }
 
 func (r *sandboxAllocationUnitResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -209,6 +230,26 @@ func (r *sandboxAllocationUnitResource) Schema(ctx context.Context, _ resource.S
 				Optional:            true,
 			},
 			"timeouts": timeouts.AttributesAll(ctx),
+			"poll_times": schema.SingleNestedAttribute{
+				MarkdownDescription: "Times after which the result of the operation is periodically checked. Times are strings which can be [parsed as a duration](https://pkg.go.dev/time#ParseDuration).",
+				Optional:            true,
+				Attributes: map[string]schema.Attribute{
+					"create": schema.StringAttribute{
+						MarkdownDescription: "Poll time for awaiting the allocation of the allocation unit, defaults to `10s`. Is used by both `Create` and `Update` operations.",
+						Optional:            true,
+						Validators: []validator.String{
+							validators.TimeDuration(),
+						},
+					},
+					"delete": schema.StringAttribute{
+						MarkdownDescription: "Poll time for awaiting the cleanup of the allocation unit, defaults to `5s`.",
+						Optional:            true,
+						Validators: []validator.String{
+							validators.TimeDuration(),
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -235,10 +276,13 @@ func (r *sandboxAllocationUnitResource) Configure(_ context.Context, req resourc
 func (r *sandboxAllocationUnitResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var poolId int64
 	var timeoutsValue timeouts.Value
+	var pollTimes types.Object
 
 	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("pool_id"), &poolId)...)
 	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("timeouts"), &timeoutsValue)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("timeouts"), timeoutsValue)...)
+	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("poll_times"), &pollTimes)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("poll_times"), pollTimes)...)
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -246,6 +290,8 @@ func (r *sandboxAllocationUnitResource) Create(ctx context.Context, req resource
 
 	ctx, cancel := setTimeout(&resp.Diagnostics, ctx, timeoutsValue, "create")
 	defer cancel()
+
+	pollTimeCreate := getPollTime(&resp.Diagnostics, ctx, pollTimes, "create", 10*time.Second)
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -262,7 +308,7 @@ func (r *sandboxAllocationUnitResource) Create(ctx context.Context, req resource
 		return
 	}
 
-	allocationRequest, err := r.client.PollRequestFinished(ctx, allocationUnit.AllocationRequest.Id, 5*time.Second, "allocation")
+	allocationRequest, err := r.client.PollRequestFinished(ctx, allocationUnit.AllocationRequest.Id, pollTimeCreate, "allocation")
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("awaiting allocation request failed, got error: %s", err))
 		return
@@ -330,6 +376,7 @@ func (r *sandboxAllocationUnitResource) Update(ctx context.Context, req resource
 	var stateWarningOnAllocationFailure, planWarningOnAllocationFailure types.Bool
 	var planAllocationRequest types.Object
 	var timeoutsValue timeouts.Value
+	var pollTimes types.Object
 
 	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("id"), &id)...)
 	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("warning_on_allocation_failure"), &stateWarningOnAllocationFailure)...)
@@ -337,6 +384,8 @@ func (r *sandboxAllocationUnitResource) Update(ctx context.Context, req resource
 	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("allocation_request"), &planAllocationRequest)...)
 	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("timeouts"), &timeoutsValue)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("timeouts"), timeoutsValue)...)
+	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("poll_times"), &pollTimes)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("poll_times"), pollTimes)...)
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -344,6 +393,8 @@ func (r *sandboxAllocationUnitResource) Update(ctx context.Context, req resource
 
 	ctx, cancel := setTimeout(&resp.Diagnostics, ctx, timeoutsValue, "update")
 	defer cancel()
+
+	pollTimeUpdate := getPollTime(&resp.Diagnostics, ctx, pollTimes, "create", 10*time.Second)
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -367,7 +418,7 @@ func (r *sandboxAllocationUnitResource) Update(ctx context.Context, req resource
 		return
 	}
 
-	allocationRequest, err := r.client.PollRequestFinished(ctx, allocationUnit.AllocationRequest.Id, 5*time.Second, "allocation")
+	allocationRequest, err := r.client.PollRequestFinished(ctx, allocationUnit.AllocationRequest.Id, pollTimeUpdate, "allocation")
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("awaiting allocation request failed, got error: %s", err))
 		return
@@ -387,10 +438,12 @@ func (r *sandboxAllocationUnitResource) Delete(ctx context.Context, req resource
 	var allocationRequest *kypo.SandboxRequest
 	var id int64
 	var timeoutsValue timeouts.Value
+	var pollTimes types.Object
 
 	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("allocation_request"), &allocationRequest)...)
 	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("id"), &id)...)
 	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("timeouts"), &timeoutsValue)...)
+	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("poll_times"), &pollTimes)...)
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -398,6 +451,8 @@ func (r *sandboxAllocationUnitResource) Delete(ctx context.Context, req resource
 
 	ctx, cancel := setTimeout(&resp.Diagnostics, ctx, timeoutsValue, "delete")
 	defer cancel()
+
+	pollTimeDelete := getPollTime(&resp.Diagnostics, ctx, pollTimes, "delete", 5*time.Second)
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -411,7 +466,7 @@ func (r *sandboxAllocationUnitResource) Delete(ctx context.Context, req resource
 		}
 	}
 
-	err := r.client.CreateSandboxCleanupRequestAwait(ctx, id, 5*time.Second)
+	err := r.client.CreateSandboxCleanupRequestAwait(ctx, id, pollTimeDelete)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete sandbox allocation unit, got error: %s", err))
 		return

@@ -39,6 +39,7 @@ resource "kypo_sandbox_allocation_unit" "example" {
 
 ### Optional
 
+- `poll_times` (Attributes) Times after which the result of the operation is periodically checked. Times are strings which can be [parsed as a duration](https://pkg.go.dev/time#ParseDuration). (see [below for nested schema](#nestedatt--poll_times))
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
 - `warning_on_allocation_failure` (Boolean) Whether to emit a warning instead of error when one of the allocation request stages fails
 
@@ -49,6 +50,15 @@ resource "kypo_sandbox_allocation_unit" "example" {
 - `created_by` (Attributes) Who created the sandbox allocation unit (see [below for nested schema](#nestedatt--created_by))
 - `id` (Number) Id of the sandbox allocation unit
 - `locked` (Boolean) Whether the allocation unit is locked. The allocation unit is locked when it is claimed by a Trainee and has an associated training run
+
+<a id="nestedatt--poll_times"></a>
+### Nested Schema for `poll_times`
+
+Optional:
+
+- `create` (String) Poll time for awaiting the allocation of the allocation unit, defaults to `10s`. Is used by both `Create` and `Update` operations.
+- `delete` (String) Poll time for awaiting the cleanup of the allocation unit, defaults to `5s`.
+
 
 <a id="nestedatt--timeouts"></a>
 ### Nested Schema for `timeouts`

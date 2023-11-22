@@ -20,6 +20,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/vydrazde/kypo-go-client/pkg/kypo"
 	"golang.org/x/exp/slices"
+
+	"terraform-provider-kypo/internal/plan_modifiers"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -140,7 +142,7 @@ func (r *sandboxAllocationUnitResource) Schema(ctx context.Context, _ resource.S
 						ElementType:         types.StringType,
 						MarkdownDescription: "Statuses of the allocation stages. List of three strings, where each is one of `IN_QUEUE`, `FINISHED`, `FAILED` or `RUNNING`",
 						PlanModifiers: []planmodifier.List{
-							allocationUnitStatePlanModifier{},
+							plan_modifiers.AllocationRequestStatePlanModifier{},
 						},
 					},
 				},
@@ -209,24 +211,6 @@ func (r *sandboxAllocationUnitResource) Schema(ctx context.Context, _ resource.S
 			"timeouts": timeouts.AttributesAll(ctx),
 		},
 	}
-}
-
-type allocationUnitStatePlanModifier struct{}
-
-func (r allocationUnitStatePlanModifier) PlanModifyList(ctx context.Context, req planmodifier.ListRequest, resp *planmodifier.ListResponse) {
-	var sandboxUnitAllocationStages []string
-	req.State.GetAttribute(ctx, path.Root("allocation_request").AtName("stages"), &sandboxUnitAllocationStages)
-	resp.RequiresReplace = slices.Contains(sandboxUnitAllocationStages, "FAILED")
-	resp.PlanValue, _ = types.ListValueFrom(ctx, types.StringType, []string{"FINISHED", "FINISHED", "FINISHED"})
-}
-
-func (r allocationUnitStatePlanModifier) Description(ctx context.Context) string {
-	return r.MarkdownDescription(ctx)
-}
-
-func (r allocationUnitStatePlanModifier) MarkdownDescription(_ context.Context) string {
-	return "Replace is required when one of the stages is `FAILED`, update - which only waits for completion, " +
-		"is required when all stages are not `FINISHED`"
 }
 
 func (r *sandboxAllocationUnitResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {

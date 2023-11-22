@@ -75,6 +75,25 @@ func warningOrError(diagnostics *diag.Diagnostics, warning bool, summary, errorS
 	}
 }
 
+func setTimeout(diags *diag.Diagnostics, ctx context.Context, timeoutsValue timeouts.Value, timeoutName string) (context.Context, context.CancelFunc) {
+	value, ok := timeoutsValue.Object.Attributes()[timeoutName]
+	if !ok || value.IsNull() || value.IsUnknown() {
+		tflog.Info(ctx, timeoutName+" timeout configuration not found, null or unknown, no timeout will be set")
+		return ctx, func() {}
+	}
+
+	timeout, err := time.ParseDuration(value.(types.String).ValueString())
+	if err != nil {
+		diags.AddError("Timeout Cannot Be Parsed",
+			fmt.Sprintf("timeout for %q cannot be parsed, %s", timeoutName, err),
+		)
+
+		return ctx, func() {}
+	}
+
+	return context.WithTimeout(ctx, timeout)
+}
+
 func (r *sandboxAllocationUnitResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_sandbox_allocation_unit"
 }
@@ -240,14 +259,12 @@ func (r *sandboxAllocationUnitResource) Create(ctx context.Context, req resource
 		return
 	}
 
-	createTimeout, diags := timeoutsValue.Create(ctx, time.Hour)
-	resp.Diagnostics.Append(diags...)
+	ctx, cancel := setTimeout(&resp.Diagnostics, ctx, timeoutsValue, "create")
+	defer cancel()
+
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	ctx, cancel := context.WithTimeout(ctx, createTimeout)
-	defer cancel()
 
 	allocationUnits, err := r.client.CreateSandboxAllocationUnits(ctx, poolId, 1)
 	if err != nil {
@@ -295,20 +312,17 @@ func (r *sandboxAllocationUnitResource) Read(ctx context.Context, req resource.R
 
 	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("id"), &id)...)
 	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("timeouts"), &timeoutsValue)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("timeouts"), timeoutsValue)...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	readTimeout, diags := timeoutsValue.Read(ctx, 5*time.Minute)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	ctx, cancel := context.WithTimeout(ctx, readTimeout)
+	ctx, cancel := setTimeout(&resp.Diagnostics, ctx, timeoutsValue, "read")
 	defer cancel()
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
@@ -336,21 +350,19 @@ func (r *sandboxAllocationUnitResource) Update(ctx context.Context, req resource
 	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("warning_on_allocation_failure"), &stateWarningOnAllocationFailure)...)
 	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("warning_on_allocation_failure"), &planWarningOnAllocationFailure)...)
 	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("allocation_request"), &planAllocationRequest)...)
-	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("timeouts"), &timeoutsValue)...)
+	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("timeouts"), &timeoutsValue)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("timeouts"), timeoutsValue)...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	updateTimeout, diags := timeoutsValue.Update(ctx, time.Hour)
-	resp.Diagnostics.Append(diags...)
+	ctx, cancel := setTimeout(&resp.Diagnostics, ctx, timeoutsValue, "update")
+	defer cancel()
+
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	ctx, cancel := context.WithTimeout(ctx, updateTimeout)
-	defer cancel()
 
 	if !stateWarningOnAllocationFailure.Equal(planWarningOnAllocationFailure) {
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("warning_on_allocation_failure"), planWarningOnAllocationFailure)...)
@@ -399,14 +411,12 @@ func (r *sandboxAllocationUnitResource) Delete(ctx context.Context, req resource
 		return
 	}
 
-	deleteTimeout, diags := timeoutsValue.Delete(ctx, time.Minute*15)
-	resp.Diagnostics.Append(diags...)
+	ctx, cancel := setTimeout(&resp.Diagnostics, ctx, timeoutsValue, "delete")
+	defer cancel()
+
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	ctx, cancel := context.WithTimeout(ctx, deleteTimeout)
-	defer cancel()
 
 	if slices.Contains(allocationRequest.Stages, "RUNNING") {
 		err := r.client.CancelSandboxAllocationRequest(ctx, allocationRequest.Id)

@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"os"
+	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -27,11 +28,12 @@ type KypoProvider struct {
 
 // KypoProviderModel describes the provider data model.
 type KypoProviderModel struct {
-	Endpoint types.String `tfsdk:"endpoint"`
-	Username types.String `tfsdk:"username"`
-	Password types.String `tfsdk:"password"`
-	Token    types.String `tfsdk:"token"`
-	ClientID types.String `tfsdk:"client_id"`
+	Endpoint   types.String `tfsdk:"endpoint"`
+	Username   types.String `tfsdk:"username"`
+	Password   types.String `tfsdk:"password"`
+	Token      types.String `tfsdk:"token"`
+	ClientID   types.String `tfsdk:"client_id"`
+	RetryCount types.Int64  `tfsdk:"retry_count"`
 }
 
 func (p *KypoProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -62,6 +64,10 @@ func (p *KypoProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp 
 			},
 			"client_id": schema.StringAttribute{
 				MarkdownDescription: "KYPO local OIDC client ID. Will be ignored when `token` is set. Defaults to `KYPO-Client`. Can be set with `KYPO_CLIENT_ID` environmental variable. See [how to get KYPO client_id](https://registry.terraform.io/vydrazde/kypo/latest/docs/guides/getting_oidc_client_id).",
+				Optional:            true,
+			},
+			"retry_count": schema.Int64Attribute{
+				MarkdownDescription: "How many times to retry failed HTTP requests. There is a delay of 100ms before the first retry. For each following retry, the delay is doubled. Defaults to 0. Can be set with `KYPO_RETRY_COUNT` environmental variable.",
 				Optional:            true,
 			},
 		},
@@ -123,6 +129,12 @@ func (p *KypoProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 	password := os.Getenv("KYPO_PASSWORD")
 	token := os.Getenv("KYPO_TOKEN")
 	clientId := os.Getenv("KYPO_CLIENT_ID")
+	retryCountStr := os.Getenv("KYPO_RETRY_COUNT")
+
+	retryCount, err := strconv.Atoi(retryCountStr)
+	if err != nil {
+		retryCount = 0
+	}
 
 	if !data.Endpoint.IsNull() {
 		endpoint = data.Endpoint.ValueString()
@@ -138,6 +150,9 @@ func (p *KypoProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 	}
 	if !data.ClientID.IsNull() {
 		clientId = data.ClientID.ValueString()
+	}
+	if !data.RetryCount.IsNull() && !data.RetryCount.IsUnknown() {
+		retryCount = int(data.RetryCount.ValueInt64())
 	}
 
 	if clientId == "" {
@@ -172,12 +187,12 @@ func (p *KypoProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 	ctx = tflog.SetField(ctx, "kypo_password", password)
 	ctx = tflog.SetField(ctx, "kypo_token", token)
 	ctx = tflog.SetField(ctx, "client_id", clientId)
+	ctx = tflog.SetField(ctx, "retry_count", retryCount)
 	ctx = tflog.MaskFieldValuesWithFieldKeys(ctx, "kypo_password", "kypo_token")
 
 	tflog.Debug(ctx, "Creating KYPO client")
 	var client *kypo.Client
 
-	var err error
 	if token != "" {
 		client, err = kypo.NewClientWithToken(endpoint, clientId, token)
 	} else {
@@ -192,6 +207,7 @@ func (p *KypoProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 		)
 		return
 	}
+	client.RetryCount = retryCount
 	resp.DataSourceData = client
 	resp.ResourceData = client
 	tflog.Info(ctx, "Configured KYPO client", map[string]any{"success": true})

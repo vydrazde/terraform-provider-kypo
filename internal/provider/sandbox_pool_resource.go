@@ -275,6 +275,9 @@ func (r *sandboxPoolResource) Delete(ctx context.Context, req resource.DeleteReq
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
 	err := r.client.DeleteSandboxPool(ctx, id)
+	if errors.Is(err, kypo.ErrNotFound) {
+		return
+	}
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete sandbox pool, got error: %s", err))
 		return

@@ -467,6 +467,9 @@ func (r *sandboxAllocationUnitResource) Delete(ctx context.Context, req resource
 	}
 
 	err := r.client.CreateSandboxCleanupRequestAwait(ctx, id, pollTimeDelete)
+	if errors.Is(err, kypo.ErrNotFound) {
+		return
+	}
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete sandbox allocation unit, got error: %s", err))
 		return

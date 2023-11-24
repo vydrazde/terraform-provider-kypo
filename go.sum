@@ -178,6 +178,8 @@ github.com/vydrazde/kypo-go-client v0.0.0-20231118153147-1870d6af3cd8 h1:4ADzbpr
 github.com/vydrazde/kypo-go-client v0.0.0-20231118153147-1870d6af3cd8/go.mod h1:XPMC6hFlw3ML/BmEJ/3zVAsm9kiGOKuaM1iDRV47TLw=
 github.com/vydrazde/kypo-go-client v0.0.0-20231121142636-5854a769edfa h1:Yuryjfqn34Lcah/kAHsbaVQuUVzsvOBn3ksCsED0b6Y=
 github.com/vydrazde/kypo-go-client v0.0.0-20231121142636-5854a769edfa/go.mod h1:XPMC6hFlw3ML/BmEJ/3zVAsm9kiGOKuaM1iDRV47TLw=
+github.com/vydrazde/kypo-go-client v0.0.0-20231124100015-afb1405664e4 h1:7Tn5qWRp0cOe5dWshLPY06KGjHu55V9XZBftdxIEkz8=
+github.com/vydrazde/kypo-go-client v0.0.0-20231124100015-afb1405664e4/go.mod h1:XPMC6hFlw3ML/BmEJ/3zVAsm9kiGOKuaM1iDRV47TLw=
 github.com/xanzy/ssh-agent v0.3.3 h1:+/15pJfg/RsTxqYcX6fHqOXZwwMP+2VyYWJeWM2qQFM=
 github.com/zclconf/go-cty v1.13.3 h1:m+b9q3YDbg6Bec5rr+KGy1MzEVzY/jC2X+YX4yqKtHI=
 github.com/zclconf/go-cty v1.13.3/go.mod h1:YKQzy/7pZ7iq2jNFzy5go57xdxdWoLLpaEp4u238AE0=

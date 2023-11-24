@@ -144,6 +144,9 @@ func (r *trainingDefinitionAdaptiveResource) Delete(ctx context.Context, req res
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
 	err := r.client.DeleteTrainingDefinitionAdaptive(ctx, id)
+	if errors.Is(err, kypo.ErrNotFound) {
+		return
+	}
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete training definition adaptive, got error: %s", err))
 		return

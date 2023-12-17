@@ -2,22 +2,28 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"golang.org/x/exp/slices"
 	"reflect"
 	"strconv"
-	"terraform-provider-kypo/internal/KYPOClient"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/vydrazde/kypo-go-client/pkg/kypo"
+	"golang.org/x/exp/slices"
+
+	"terraform-provider-kypo/internal/plan_modifiers"
+	"terraform-provider-kypo/internal/validators"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -31,7 +37,7 @@ func NewSandboxAllocationUnitResource() resource.Resource {
 
 // sandboxAllocationUnitResource defines the resource implementation.
 type sandboxAllocationUnitResource struct {
-	client *KYPOClient.Client
+	client *kypo.Client
 }
 
 type response struct {
@@ -48,7 +54,7 @@ func setState(ctx context.Context, stateValue any, resp response) {
 	}
 }
 
-func checkAllocationRequestResult(allocationUnit *KYPOClient.SandboxAllocationUnit, diagnostics *diag.Diagnostics, warningOnAllocationFailureBool bool, id int64) {
+func checkAllocationRequestResult(allocationUnit *kypo.SandboxAllocationUnit, diagnostics *diag.Diagnostics, warningOnAllocationFailureBool bool, id int64) {
 	if allocationUnit.AllocationRequest.Stages[0] != "FINISHED" {
 		warningOrError(diagnostics, warningOnAllocationFailureBool, "Sandbox Creation Error - Terraform Stage Failed",
 			fmt.Sprintf("Creation of sandbox allocation unit %d finished with error in Terraform stage", id))
@@ -74,11 +80,49 @@ func warningOrError(diagnostics *diag.Diagnostics, warning bool, summary, errorS
 	}
 }
 
+func setTimeout(diags *diag.Diagnostics, ctx context.Context, timeoutsValue timeouts.Value, timeoutName string) (context.Context, context.CancelFunc) {
+	value, ok := timeoutsValue.Object.Attributes()[timeoutName]
+	if !ok || value.IsNull() || value.IsUnknown() {
+		tflog.Info(ctx, timeoutName+" timeout configuration not found, null or unknown, no timeout will be set")
+		return ctx, func() {}
+	}
+
+	timeout, err := time.ParseDuration(value.(types.String).ValueString())
+	if err != nil {
+		diags.AddError("Timeout Cannot Be Parsed",
+			fmt.Sprintf("timeout for %q cannot be parsed, %s", timeoutName, err),
+		)
+
+		return ctx, func() {}
+	}
+
+	return context.WithTimeout(ctx, timeout)
+}
+
+func getPollTime(diags *diag.Diagnostics, ctx context.Context, pollTimeObject types.Object, pollTimeName string, pollTimeDefault time.Duration) time.Duration {
+	value, ok := pollTimeObject.Attributes()[pollTimeName]
+	if !ok || value.IsNull() || value.IsUnknown() {
+		tflog.Info(ctx, pollTimeName+" timeout configuration not found, null or unknown, using default "+pollTimeDefault.String())
+		return pollTimeDefault
+	}
+
+	pollTime, err := time.ParseDuration(value.(types.String).ValueString())
+	if err != nil {
+		diags.AddError("Poll Time Cannot Be Parsed",
+			fmt.Sprintf("poll time for %q cannot be parsed, %s", pollTimeName, err),
+		)
+
+		return pollTimeDefault
+	}
+
+	return pollTime
+}
+
 func (r *sandboxAllocationUnitResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_sandbox_allocation_unit"
 }
 
-func (r *sandboxAllocationUnitResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *sandboxAllocationUnitResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
 		MarkdownDescription: "Sandbox allocation unit",
@@ -86,20 +130,20 @@ func (r *sandboxAllocationUnitResource) Schema(_ context.Context, _ resource.Sch
 		Attributes: map[string]schema.Attribute{
 			"id": schema.Int64Attribute{
 				Computed:            true,
-				MarkdownDescription: "Sandbox Allocation Unit Id",
+				MarkdownDescription: "Id of the sandbox allocation unit",
 				PlanModifiers: []planmodifier.Int64{
 					int64planmodifier.UseStateForUnknown(),
 				},
 			},
 			"pool_id": schema.Int64Attribute{
-				MarkdownDescription: "Id of associated sandbox pool",
+				MarkdownDescription: "Id of the associated sandbox pool",
 				Required:            true,
 				PlanModifiers: []planmodifier.Int64{
 					int64planmodifier.RequiresReplace(),
 				},
 			},
 			"allocation_request": schema.SingleNestedAttribute{
-				MarkdownDescription: "Associated allocation request",
+				MarkdownDescription: "Allocation request of the allocation unit",
 				Computed:            true,
 				Attributes: map[string]schema.Attribute{
 					"id": schema.Int64Attribute{
@@ -112,20 +156,20 @@ func (r *sandboxAllocationUnitResource) Schema(_ context.Context, _ resource.Sch
 					},
 					"created": schema.StringAttribute{
 						Computed:            true,
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Date and time when the allocation request was created",
 					},
 					"stages": schema.ListAttribute{
 						Computed:            true,
 						ElementType:         types.StringType,
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Statuses of the allocation stages. List of three strings, where each is one of `IN_QUEUE`, `FINISHED`, `FAILED` or `RUNNING`",
 						PlanModifiers: []planmodifier.List{
-							allocationUnitStatePlanModifier{},
+							plan_modifiers.AllocationRequestStatePlanModifier{},
 						},
 					},
 				},
 			},
 			"cleanup_request": schema.SingleNestedAttribute{
-				MarkdownDescription: "Associated cleanup request",
+				MarkdownDescription: "Cleanup request of the allocation unit",
 				Computed:            true,
 				Attributes: map[string]schema.Attribute{
 					"id": schema.Int64Attribute{
@@ -134,21 +178,21 @@ func (r *sandboxAllocationUnitResource) Schema(_ context.Context, _ resource.Sch
 					},
 					"allocation_unit_id": schema.Int64Attribute{
 						Computed:            true,
-						MarkdownDescription: "Id of the associated allocation unit",
+						MarkdownDescription: "Id of the allocation unit",
 					},
 					"created": schema.StringAttribute{
 						Computed:            true,
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Date and time when the allocation request was created",
 					},
 					"stages": schema.ListAttribute{
 						Computed:            true,
 						ElementType:         types.StringType,
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Statuses of cleanup stages. List of three strings, where each is one of `IN_QUEUE`, `FINISHED`, `FAILED` or `RUNNING`",
 					},
 				},
 			},
 			"created_by": schema.SingleNestedAttribute{
-				MarkdownDescription: "Creator of this sandbox pool",
+				MarkdownDescription: "Who created the sandbox allocation unit",
 				Computed:            true,
 				Attributes: map[string]schema.Attribute{
 					"id": schema.Int64Attribute{
@@ -156,56 +200,58 @@ func (r *sandboxAllocationUnitResource) Schema(_ context.Context, _ resource.Sch
 						MarkdownDescription: "Id of the user",
 					},
 					"sub": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Sub of the user as given by an OIDC provider",
 						Computed:            true,
 					},
 					"full_name": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Full name of the user",
 						Computed:            true,
 					},
 					"given_name": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Given name of the user",
 						Computed:            true,
 					},
 					"family_name": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Family name of the user",
 						Computed:            true,
 					},
 					"mail": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Email of the user",
 						Computed:            true,
 					},
 				},
 			},
 			"locked": schema.BoolAttribute{
-				MarkdownDescription: "TODO",
+				MarkdownDescription: "Whether the allocation unit is locked. The allocation unit is locked when it is claimed by a Trainee and has an associated training run",
 				Computed:            true,
 			},
 			"warning_on_allocation_failure": schema.BoolAttribute{
-				MarkdownDescription: "If `true`, will emit a warning instead of error when one of the allocation " +
-					"request stages fails.",
-				Optional: true,
+				MarkdownDescription: "Whether to emit a warning instead of error when one of the allocation request stages fails",
+				Optional:            true,
+			},
+			"timeouts": timeouts.AttributesAll(ctx),
+			"poll_times": schema.SingleNestedAttribute{
+				MarkdownDescription: "Times after which the result of the operation is periodically checked. Times are strings which can be [parsed as a duration](https://pkg.go.dev/time#ParseDuration).",
+				Optional:            true,
+				Attributes: map[string]schema.Attribute{
+					"create": schema.StringAttribute{
+						MarkdownDescription: "Poll time for awaiting the allocation of the allocation unit, defaults to `10s`. Is used by both `Create` and `Update` operations.",
+						Optional:            true,
+						Validators: []validator.String{
+							validators.TimeDuration(),
+						},
+					},
+					"delete": schema.StringAttribute{
+						MarkdownDescription: "Poll time for awaiting the cleanup of the allocation unit, defaults to `5s`.",
+						Optional:            true,
+						Validators: []validator.String{
+							validators.TimeDuration(),
+						},
+					},
+				},
 			},
 		},
 	}
-}
-
-type allocationUnitStatePlanModifier struct{}
-
-func (r allocationUnitStatePlanModifier) PlanModifyList(ctx context.Context, req planmodifier.ListRequest, resp *planmodifier.ListResponse) {
-	var sandboxUnitAllocationStages []string
-	req.State.GetAttribute(ctx, path.Root("allocation_request").AtName("stages"), &sandboxUnitAllocationStages)
-	resp.RequiresReplace = slices.Contains(sandboxUnitAllocationStages, "FAILED")
-	resp.PlanValue, _ = types.ListValueFrom(ctx, types.StringType, []string{"FINISHED", "FINISHED", "FINISHED"})
-}
-
-func (r allocationUnitStatePlanModifier) Description(ctx context.Context) string {
-	return r.MarkdownDescription(ctx)
-}
-
-func (r allocationUnitStatePlanModifier) MarkdownDescription(_ context.Context) string {
-	return "Replace is required when one of the stages is `FAILED`, update - which only waits for completion, " +
-		"is required when all stages are not `FINISHED`"
 }
 
 func (r *sandboxAllocationUnitResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -214,12 +260,12 @@ func (r *sandboxAllocationUnitResource) Configure(_ context.Context, req resourc
 		return
 	}
 
-	client, ok := req.ProviderData.(*KYPOClient.Client)
+	client, ok := req.ProviderData.(*kypo.Client)
 
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected KYPOClient.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected kypo.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -229,15 +275,29 @@ func (r *sandboxAllocationUnitResource) Configure(_ context.Context, req resourc
 
 func (r *sandboxAllocationUnitResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var poolId int64
+	var timeoutsValue timeouts.Value
+	var pollTimes types.Object
 
-	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("pool_id"), &poolId)...)
+	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("timeouts"), &timeoutsValue)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("timeouts"), timeoutsValue)...)
+	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("poll_times"), &pollTimes)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("poll_times"), pollTimes)...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	allocationUnits, err := r.client.CreateSandboxAllocationUnits(poolId, 1)
+	ctx, cancel := setTimeout(&resp.Diagnostics, ctx, timeoutsValue, "create")
+	defer cancel()
+
+	pollTimeCreate := getPollTime(&resp.Diagnostics, ctx, pollTimes, "create", 10*time.Second)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	allocationUnits, err := r.client.CreateSandboxAllocationUnits(ctx, poolId, 1)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create sandbox allocation unit, got error: %s", err))
 		return
@@ -248,7 +308,7 @@ func (r *sandboxAllocationUnitResource) Create(ctx context.Context, req resource
 		return
 	}
 
-	allocationRequest, err := r.client.PollRequestFinished(allocationUnit.AllocationRequest.Id, 5*time.Second, "allocation")
+	allocationRequest, err := r.client.PollRequestFinished(ctx, allocationUnit.AllocationRequest.Id, pollTimeCreate, "allocation")
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("awaiting allocation request failed, got error: %s", err))
 		return
@@ -279,8 +339,17 @@ func (r *sandboxAllocationUnitResource) Create(ctx context.Context, req resource
 
 func (r *sandboxAllocationUnitResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var id int64
+	var timeoutsValue timeouts.Value
 
 	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("id"), &id)...)
+	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("timeouts"), &timeoutsValue)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	ctx, cancel := setTimeout(&resp.Diagnostics, ctx, timeoutsValue, "read")
+	defer cancel()
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -288,8 +357,8 @@ func (r *sandboxAllocationUnitResource) Read(ctx context.Context, req resource.R
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	allocationUnit, err := r.client.GetSandboxAllocationUnit(id)
-	if _, ok := err.(*KYPOClient.ErrNotFound); ok {
+	allocationUnit, err := r.client.GetSandboxAllocationUnit(ctx, id)
+	if errors.Is(err, kypo.ErrNotFound) {
 		resp.State.RemoveResource(ctx)
 		return
 	}
@@ -306,11 +375,26 @@ func (r *sandboxAllocationUnitResource) Update(ctx context.Context, req resource
 	var id types.Int64
 	var stateWarningOnAllocationFailure, planWarningOnAllocationFailure types.Bool
 	var planAllocationRequest types.Object
+	var timeoutsValue timeouts.Value
+	var pollTimes types.Object
 
 	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("id"), &id)...)
 	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("warning_on_allocation_failure"), &stateWarningOnAllocationFailure)...)
 	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("warning_on_allocation_failure"), &planWarningOnAllocationFailure)...)
 	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("allocation_request"), &planAllocationRequest)...)
+	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("timeouts"), &timeoutsValue)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("timeouts"), timeoutsValue)...)
+	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("poll_times"), &pollTimes)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("poll_times"), pollTimes)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	ctx, cancel := setTimeout(&resp.Diagnostics, ctx, timeoutsValue, "update")
+	defer cancel()
+
+	pollTimeUpdate := getPollTime(&resp.Diagnostics, ctx, pollTimes, "create", 10*time.Second)
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -328,13 +412,13 @@ func (r *sandboxAllocationUnitResource) Update(ctx context.Context, req resource
 		return
 	}
 
-	allocationUnit, err := r.client.GetSandboxAllocationUnit(id.ValueInt64())
+	allocationUnit, err := r.client.GetSandboxAllocationUnit(ctx, id.ValueInt64())
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read sandbox allocation unit, got error: %s", err))
 		return
 	}
 
-	allocationRequest, err := r.client.PollRequestFinished(allocationUnit.AllocationRequest.Id, 5*time.Second, "allocation")
+	allocationRequest, err := r.client.PollRequestFinished(ctx, allocationUnit.AllocationRequest.Id, pollTimeUpdate, "allocation")
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("awaiting allocation request failed, got error: %s", err))
 		return
@@ -351,25 +435,41 @@ func (r *sandboxAllocationUnitResource) Update(ctx context.Context, req resource
 }
 
 func (r *sandboxAllocationUnitResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var allocationRequest *KYPOClient.SandboxRequest
+	var allocationRequest *kypo.SandboxRequest
 	var id int64
+	var timeoutsValue timeouts.Value
+	var pollTimes types.Object
 
 	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("allocation_request"), &allocationRequest)...)
 	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("id"), &id)...)
+	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("timeouts"), &timeoutsValue)...)
+	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("poll_times"), &pollTimes)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	ctx, cancel := setTimeout(&resp.Diagnostics, ctx, timeoutsValue, "delete")
+	defer cancel()
+
+	pollTimeDelete := getPollTime(&resp.Diagnostics, ctx, pollTimes, "delete", 5*time.Second)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	if slices.Contains(allocationRequest.Stages, "RUNNING") {
-		err := r.client.CancelSandboxAllocationRequest(allocationRequest.Id)
+		err := r.client.CancelSandboxAllocationRequest(ctx, allocationRequest.Id)
 		if err != nil {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to cancel sandbox allocation unit allocation request, got error: %s", err))
 			return
 		}
 	}
 
-	err := r.client.CreateSandboxCleanupRequestAwait(id)
+	err := r.client.CreateSandboxCleanupRequestAwait(ctx, id, pollTimeDelete)
+	if errors.Is(err, kypo.ErrNotFound) {
+		return
+	}
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete sandbox allocation unit, got error: %s", err))
 		return

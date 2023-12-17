@@ -3,12 +3,12 @@
 page_title: "kypo_sandbox_request_output Data Source - terraform-provider-kypo"
 subcategory: ""
 description: |-
-  Sandbox allocation request output of one of three stages. Terraform, Networking Ansible or User Ansible.
+  Sandbox allocation request output of one of three stages, which are terraform, networking-ansible or user-ansible.
 ---
 
 # kypo_sandbox_request_output (Data Source)
 
-Sandbox allocation request output of one of three stages. Terraform, Networking Ansible or User Ansible.
+Sandbox allocation request output of one of three stages, which are terraform, networking-ansible or user-ansible.
 
 
 
@@ -17,12 +17,12 @@ Sandbox allocation request output of one of three stages. Terraform, Networking 
 
 ### Required
 
-- `id` (Number) Sandbox Allocation Request Id
+- `id` (Number) Id of the sandbox allocation request to read the output from. The sandbox allocation request is always the same as sandbox allocation unit id
 
 ### Optional
 
-- `stage` (String) Sandbox Request stage to get the output of. Must be one of `user-ansible`, `networking-ansible` or `terraform`. Defaults to `user-ansible`
+- `stage` (String) Sandbox request stage to get the output of. Must be one of `user-ansible`, `networking-ansible` or `terraform`. Defaults to `user-ansible`
 
 ### Read-Only
 
-- `result` (String) Output of stage
+- `result` (String) The resulting output of the stage, concatenated into a single string

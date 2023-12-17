@@ -4,16 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"strconv"
-	"terraform-provider-kypo/internal/KYPOClient"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/vydrazde/kypo-go-client/pkg/kypo"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -27,7 +27,7 @@ func NewTrainingDefinitionAdaptiveResource() resource.Resource {
 
 // trainingDefinitionAdaptiveResource defines the resource implementation.
 type trainingDefinitionAdaptiveResource struct {
-	client *KYPOClient.Client
+	client *kypo.Client
 }
 
 func (r *trainingDefinitionAdaptiveResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -37,7 +37,7 @@ func (r *trainingDefinitionAdaptiveResource) Metadata(_ context.Context, req res
 func (r *trainingDefinitionAdaptiveResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "Training definition adaptive",
+		MarkdownDescription: "Adaptive training definition",
 
 		Attributes: map[string]schema.Attribute{
 			"id": schema.Int64Attribute{
@@ -48,7 +48,7 @@ func (r *trainingDefinitionAdaptiveResource) Schema(_ context.Context, _ resourc
 				},
 			},
 			"content": schema.StringAttribute{
-				MarkdownDescription: "JSON with exported training definition",
+				MarkdownDescription: "JSON with the exported training definition",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -64,12 +64,12 @@ func (r *trainingDefinitionAdaptiveResource) Configure(_ context.Context, req re
 		return
 	}
 
-	client, ok := req.ProviderData.(*KYPOClient.Client)
+	client, ok := req.ProviderData.(*kypo.Client)
 
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected KYPOClient.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected kypo.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -89,7 +89,7 @@ func (r *trainingDefinitionAdaptiveResource) Create(ctx context.Context, req res
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	definition, err := r.client.CreateTrainingDefinitionAdaptive(content)
+	definition, err := r.client.CreateTrainingDefinitionAdaptive(ctx, content)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create training definition adaptive, got error: %s", err))
 		return
@@ -114,9 +114,8 @@ func (r *trainingDefinitionAdaptiveResource) Read(ctx context.Context, req resou
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	definition, err := r.client.GetTrainingDefinitionAdaptive(id)
-	var errNotFound *KYPOClient.ErrNotFound
-	if errors.As(err, &errNotFound) {
+	definition, err := r.client.GetTrainingDefinitionAdaptive(ctx, id)
+	if errors.Is(err, kypo.ErrNotFound) {
 		resp.State.RemoveResource(ctx)
 		return
 	}
@@ -144,7 +143,10 @@ func (r *trainingDefinitionAdaptiveResource) Delete(ctx context.Context, req res
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	err := r.client.DeleteTrainingDefinitionAdaptive(id)
+	err := r.client.DeleteTrainingDefinitionAdaptive(ctx, id)
+	if errors.Is(err, kypo.ErrNotFound) {
+		return
+	}
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete training definition adaptive, got error: %s", err))
 		return

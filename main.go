@@ -4,9 +4,10 @@ import (
 	"context"
 	"flag"
 	"log"
-	"terraform-provider-kypo/internal/provider"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
+
+	"terraform-provider-kypo/internal/provider"
 )
 
 // Run "go generate" to format example terraform files and generate the docs for the registry/website
@@ -18,6 +19,9 @@ import (
 // Run the docs generation tool, check its repository for more information on how it works and how docs
 // can be customized.
 //go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
+
+// Restore docs/guides, which is deleted by tfplugindocs
+//go:generate git restore docs/guides
 
 var (
 	// these will be set by the goreleaser configuration

@@ -4,16 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"strconv"
-	"terraform-provider-kypo/internal/KYPOClient"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/vydrazde/kypo-go-client/pkg/kypo"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -27,7 +27,7 @@ func NewTrainingDefinitionResource() resource.Resource {
 
 // trainingDefinitionResource defines the resource implementation.
 type trainingDefinitionResource struct {
-	client *KYPOClient.Client
+	client *kypo.Client
 }
 
 func (r *trainingDefinitionResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -64,12 +64,12 @@ func (r *trainingDefinitionResource) Configure(_ context.Context, req resource.C
 		return
 	}
 
-	client, ok := req.ProviderData.(*KYPOClient.Client)
+	client, ok := req.ProviderData.(*kypo.Client)
 
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected KYPOClient.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected kypo.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -89,7 +89,7 @@ func (r *trainingDefinitionResource) Create(ctx context.Context, req resource.Cr
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	definition, err := r.client.CreateTrainingDefinition(content)
+	definition, err := r.client.CreateTrainingDefinition(ctx, content)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create training definition, got error: %s", err))
 		return
@@ -114,9 +114,8 @@ func (r *trainingDefinitionResource) Read(ctx context.Context, req resource.Read
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	definition, err := r.client.GetTrainingDefinition(id)
-	var errNotFound *KYPOClient.ErrNotFound
-	if errors.As(err, &errNotFound) {
+	definition, err := r.client.GetTrainingDefinition(ctx, id)
+	if errors.Is(err, kypo.ErrNotFound) {
 		resp.State.RemoveResource(ctx)
 		return
 	}
@@ -144,7 +143,10 @@ func (r *trainingDefinitionResource) Delete(ctx context.Context, req resource.De
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	err := r.client.DeleteTrainingDefinition(id)
+	err := r.client.DeleteTrainingDefinition(ctx, id)
+	if errors.Is(err, kypo.ErrNotFound) {
+		return
+	}
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete training definition, got error: %s", err))
 		return

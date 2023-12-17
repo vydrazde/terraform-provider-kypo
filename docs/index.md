@@ -26,8 +26,9 @@ provider "kypo" {
 
 ### Optional
 
-- `client_id` (String) KYPO local OIDC client ID. Will be ignored when `token` is set. Defaults to `KYPO-Client`. Can be set with `KYPO_CLIENT_ID` environmental variable. See [how to get KYPO client_id](https://github.com/vydrazde/terraform-provider-kypo/wiki/How-to-get-KYPO-CRP-client_id).
+- `client_id` (String) KYPO local OIDC client ID. Will be ignored when `token` is set. Defaults to `KYPO-Client`. Can be set with `KYPO_CLIENT_ID` environmental variable. See [how to get KYPO client_id](https://registry.terraform.io/vydrazde/kypo/latest/docs/guides/getting_oidc_client_id).
 - `endpoint` (String) URI of the homepage of the KYPO instance, like `https://my.kypo.instance.ex`. Can be set with `KYPO_ENDPOINT` environmental variable.
 - `password` (String, Sensitive) `password` of the user to login as with `username`. Use either `username` and `password` or just `token`. Can be set with `KYPO_PASSWORD` environmental variable.
+- `retry_count` (Number) How many times to retry failed HTTP requests. There is a delay of 100ms before the first retry. For each following retry, the delay is doubled. Defaults to 0. Can be set with `KYPO_RETRY_COUNT` environmental variable.
 - `token` (String, Sensitive) Bearer token to be used. Takes precedence before `username` and `password`. Bearer tokens usually have limited lifespan. Can be set with `KYPO_TOKEN` environmental variable.
 - `username` (String) `username` of the user to login as with `password`. Use either `username` and `password` or just `token`. Can be set with `KYPO_USERNAME` environmental variable.

@@ -2,17 +2,18 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"strconv"
-	"terraform-provider-kypo/internal/KYPOClient"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/vydrazde/kypo-go-client/pkg/kypo"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -26,7 +27,7 @@ func NewSandboxDefinitionResource() resource.Resource {
 
 // sandboxDefinitionResource defines the resource implementation.
 type sandboxDefinitionResource struct {
-	client *KYPOClient.Client
+	client *kypo.Client
 }
 
 func (r *sandboxDefinitionResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -41,7 +42,7 @@ func (r *sandboxDefinitionResource) Schema(_ context.Context, _ resource.SchemaR
 		Attributes: map[string]schema.Attribute{
 			"id": schema.Int64Attribute{
 				Computed:            true,
-				MarkdownDescription: "Example identifier",
+				MarkdownDescription: "Id of the sandbox definition",
 				PlanModifiers: []planmodifier.Int64{
 					int64planmodifier.UseStateForUnknown(),
 				},
@@ -65,7 +66,7 @@ func (r *sandboxDefinitionResource) Schema(_ context.Context, _ resource.SchemaR
 				},
 			},
 			"created_by": schema.SingleNestedAttribute{
-				MarkdownDescription: "Creator of this sandbox definition",
+				MarkdownDescription: "Who created the sandbox definition",
 				Computed:            true,
 				Attributes: map[string]schema.Attribute{
 					"id": schema.Int64Attribute{
@@ -73,23 +74,23 @@ func (r *sandboxDefinitionResource) Schema(_ context.Context, _ resource.SchemaR
 						MarkdownDescription: "Id of the user",
 					},
 					"sub": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Sub of the user as given by an OIDC provider",
 						Computed:            true,
 					},
 					"full_name": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Full name of the user",
 						Computed:            true,
 					},
 					"given_name": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Given name of the user",
 						Computed:            true,
 					},
 					"family_name": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Family name of the user",
 						Computed:            true,
 					},
 					"mail": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Email of the user",
 						Computed:            true,
 					},
 				},
@@ -104,7 +105,7 @@ func (r *sandboxDefinitionResource) Configure(_ context.Context, req resource.Co
 		return
 	}
 
-	client, ok := req.ProviderData.(*KYPOClient.Client)
+	client, ok := req.ProviderData.(*kypo.Client)
 
 	if !ok {
 		resp.Diagnostics.AddError(
@@ -130,7 +131,7 @@ func (r *sandboxDefinitionResource) Create(ctx context.Context, req resource.Cre
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	definition, err := r.client.CreateSandboxDefinition(url, rev)
+	definition, err := r.client.CreateSandboxDefinition(ctx, url, rev)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create sandbox definition, got error: %s", err))
 		return
@@ -155,8 +156,8 @@ func (r *sandboxDefinitionResource) Read(ctx context.Context, req resource.ReadR
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	definition, err := r.client.GetSandboxDefinition(id)
-	if _, ok := err.(*KYPOClient.ErrNotFound); ok {
+	definition, err := r.client.GetSandboxDefinition(ctx, id)
+	if errors.Is(err, kypo.ErrNotFound) {
 		resp.State.RemoveResource(ctx)
 		return
 	}
@@ -184,7 +185,10 @@ func (r *sandboxDefinitionResource) Delete(ctx context.Context, req resource.Del
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	err := r.client.DeleteSandboxDefinition(id)
+	err := r.client.DeleteSandboxDefinition(ctx, id)
+	if errors.Is(err, kypo.ErrNotFound) {
+		return
+	}
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete sandbox definition, got error: %s", err))
 		return

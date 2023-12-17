@@ -2,16 +2,17 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"strconv"
-	"terraform-provider-kypo/internal/KYPOClient"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/vydrazde/kypo-go-client/pkg/kypo"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -25,7 +26,7 @@ func NewSandboxPoolResource() resource.Resource {
 
 // sandboxPoolResource defines the resource implementation.
 type sandboxPoolResource struct {
-	client *KYPOClient.Client
+	client *kypo.Client
 }
 
 func (r *sandboxPoolResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -40,36 +41,36 @@ func (r *sandboxPoolResource) Schema(_ context.Context, _ resource.SchemaRequest
 		Attributes: map[string]schema.Attribute{
 			"id": schema.Int64Attribute{
 				Computed:            true,
-				MarkdownDescription: "Sandbox Pool Id",
+				MarkdownDescription: "Id of the sandbox pool",
 				PlanModifiers: []planmodifier.Int64{
 					int64planmodifier.UseStateForUnknown(),
 				},
 			},
 			"size": schema.Int64Attribute{
-				MarkdownDescription: "Current number of sandboxes",
+				MarkdownDescription: "Current number of allocated sandbox allocation units",
 				Computed:            true,
 			},
 			"max_size": schema.Int64Attribute{
-				MarkdownDescription: "Maximum number of sandboxes",
+				MarkdownDescription: "Maximum number of allocated sandbox allocation units",
 				Required:            true,
 				PlanModifiers: []planmodifier.Int64{
 					int64planmodifier.RequiresReplace(),
 				},
 			},
 			"lock_id": schema.Int64Attribute{
-				MarkdownDescription: "Id of associated lock",
+				MarkdownDescription: "Id of the associated lock",
 				Computed:            true,
 			},
 			"rev": schema.StringAttribute{
-				MarkdownDescription: "Revision of the associated Git repository of the sandbox definition",
+				MarkdownDescription: "Revision of the associated Git repository used for the sandbox pool",
 				Computed:            true,
 			},
 			"rev_sha": schema.StringAttribute{
-				MarkdownDescription: "Revision hash of the Git repository of the sandbox definition",
+				MarkdownDescription: "Revision hash of the associated Git repository used for the sandbox pool",
 				Computed:            true,
 			},
 			"created_by": schema.SingleNestedAttribute{
-				MarkdownDescription: "Creator of this sandbox pool",
+				MarkdownDescription: "Who created the sandbox pool",
 				Computed:            true,
 				Attributes: map[string]schema.Attribute{
 					"id": schema.Int64Attribute{
@@ -77,53 +78,53 @@ func (r *sandboxPoolResource) Schema(_ context.Context, _ resource.SchemaRequest
 						MarkdownDescription: "Id of the user",
 					},
 					"sub": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Sub of the user as given by an OIDC provider",
 						Computed:            true,
 					},
 					"full_name": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Full name of the user",
 						Computed:            true,
 					},
 					"given_name": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Given name of the user",
 						Computed:            true,
 					},
 					"family_name": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Family name of the user",
 						Computed:            true,
 					},
 					"mail": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "Email of the user",
 						Computed:            true,
 					},
 				},
 			},
 			"hardware_usage": schema.SingleNestedAttribute{
-				MarkdownDescription: "Current resource usage",
+				MarkdownDescription: "Current resource usage by all allocation units in the pool",
 				Computed:            true,
 				Attributes: map[string]schema.Attribute{
 					"vcpu": schema.StringAttribute{
+						MarkdownDescription: "The percentage of used vCPUs relative to the cloud quota",
 						Computed:            true,
-						MarkdownDescription: "Id of the user",
 					},
 					"ram": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "The percentage of used RAM relative to the cloud quota",
 						Computed:            true,
 					},
 					"instances": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "The percentage of used instances relative to the cloud quota",
 						Computed:            true,
 					},
 					"network": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "The percentage of used networks relative to the cloud quota",
 						Computed:            true,
 					},
 					"subnet": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "The percentage of used subnets relative to the cloud quota",
 						Computed:            true,
 					},
 					"port": schema.StringAttribute{
-						MarkdownDescription: "TODO",
+						MarkdownDescription: "The percentage of used ports relative to the cloud quota",
 						Computed:            true,
 					},
 				},
@@ -133,7 +134,7 @@ func (r *sandboxPoolResource) Schema(_ context.Context, _ resource.SchemaRequest
 				Required:            true,
 				Attributes: map[string]schema.Attribute{
 					"id": schema.Int64Attribute{
-						MarkdownDescription: "Id of associated sandbox definition",
+						MarkdownDescription: "Id of the associated sandbox definition",
 						Required:            true,
 						PlanModifiers: []planmodifier.Int64{
 							int64planmodifier.RequiresReplace(),
@@ -152,7 +153,7 @@ func (r *sandboxPoolResource) Schema(_ context.Context, _ resource.SchemaRequest
 						Computed:            true,
 					},
 					"created_by": schema.SingleNestedAttribute{
-						MarkdownDescription: "Creator of this sandbox definition",
+						MarkdownDescription: "Who created the sandbox definition",
 						Computed:            true,
 						Attributes: map[string]schema.Attribute{
 							"id": schema.Int64Attribute{
@@ -160,23 +161,23 @@ func (r *sandboxPoolResource) Schema(_ context.Context, _ resource.SchemaRequest
 								MarkdownDescription: "Id of the user",
 							},
 							"sub": schema.StringAttribute{
-								MarkdownDescription: "TODO",
+								MarkdownDescription: "Sub of the user as given by an OIDC provider",
 								Computed:            true,
 							},
 							"full_name": schema.StringAttribute{
-								MarkdownDescription: "TODO",
+								MarkdownDescription: "Full name of the user",
 								Computed:            true,
 							},
 							"given_name": schema.StringAttribute{
-								MarkdownDescription: "TODO",
+								MarkdownDescription: "Given name of the user",
 								Computed:            true,
 							},
 							"family_name": schema.StringAttribute{
-								MarkdownDescription: "TODO",
+								MarkdownDescription: "Family name of the user",
 								Computed:            true,
 							},
 							"mail": schema.StringAttribute{
-								MarkdownDescription: "TODO",
+								MarkdownDescription: "Email of the user",
 								Computed:            true,
 							},
 						},
@@ -193,12 +194,12 @@ func (r *sandboxPoolResource) Configure(_ context.Context, req resource.Configur
 		return
 	}
 
-	client, ok := req.ProviderData.(*KYPOClient.Client)
+	client, ok := req.ProviderData.(*kypo.Client)
 
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected KYPOClient.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected kypo.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -219,7 +220,7 @@ func (r *sandboxPoolResource) Create(ctx context.Context, req resource.CreateReq
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	pool, err := r.client.CreateSandboxPool(definitionId, maxSize)
+	pool, err := r.client.CreateSandboxPool(ctx, definitionId, maxSize)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create sandbox pool, got error: %s", err))
 		return
@@ -244,8 +245,8 @@ func (r *sandboxPoolResource) Read(ctx context.Context, req resource.ReadRequest
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	pool, err := r.client.GetSandboxPool(id)
-	if _, ok := err.(*KYPOClient.ErrNotFound); ok {
+	pool, err := r.client.GetSandboxPool(ctx, id)
+	if errors.Is(err, kypo.ErrNotFound) {
 		resp.State.RemoveResource(ctx)
 		return
 	}
@@ -273,7 +274,10 @@ func (r *sandboxPoolResource) Delete(ctx context.Context, req resource.DeleteReq
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	err := r.client.DeleteSandboxPool(id)
+	err := r.client.DeleteSandboxPool(ctx, id)
+	if errors.Is(err, kypo.ErrNotFound) {
+		return
+	}
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete sandbox pool, got error: %s", err))
 		return

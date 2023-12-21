@@ -179,6 +179,16 @@ github.com/vmihailenco/tagparser/v2 v2.0.0 h1:y09buUbR+b5aycVFQs/g70pqKVZNBmxwAh
 github.com/vmihailenco/tagparser/v2 v2.0.0/go.mod h1:Wri+At7QHww0WTrCBeu4J6bNtoV6mEfg5OIWRZA9qds=
 github.com/vydrazde/kypo-go-client v0.0.0-20231217200146-31f2dac2e92b h1:5yI40Xzyfh2J3BRFSsnms5RRGSdJRS6VEOS175XwWlA=
 github.com/vydrazde/kypo-go-client v0.0.0-20231217200146-31f2dac2e92b/go.mod h1:N756jaC76zZZVHs0yXsURRQ315Aby7eXhwWE3F9Pkac=
+github.com/vydrazde/kypo-go-client v0.0.0-20231221183929-b00e429cced4 h1:5Z1IJrpT3Cr7r9pnJMukNTI/ARwweQOb3OIlZE3kmA0=
+github.com/vydrazde/kypo-go-client v0.0.0-20231221183929-b00e429cced4/go.mod h1:N756jaC76zZZVHs0yXsURRQ315Aby7eXhwWE3F9Pkac=
+github.com/vydrazde/kypo-go-client v0.0.0-20231221202223-35acdb8f3277 h1:8vHYkmLlJM4Su0hJ5apNMVE+Ry8v5uhDEorVXDwQPd0=
+github.com/vydrazde/kypo-go-client v0.0.0-20231221202223-35acdb8f3277/go.mod h1:N756jaC76zZZVHs0yXsURRQ315Aby7eXhwWE3F9Pkac=
+github.com/vydrazde/kypo-go-client v0.0.0-20231221204616-9d0b6eaa5871 h1:Ey4z+/GoVewgwKeN0EcuE19bJiFNRiHk4TtBqhue/pg=
+github.com/vydrazde/kypo-go-client v0.0.0-20231221204616-9d0b6eaa5871/go.mod h1:N756jaC76zZZVHs0yXsURRQ315Aby7eXhwWE3F9Pkac=
+github.com/vydrazde/kypo-go-client v0.0.0-20231221211455-5c78c8324d91 h1:dFKdPzpHiNhVB1F58KiBHOfCawqQchqE95lAg/2E/qo=
+github.com/vydrazde/kypo-go-client v0.0.0-20231221211455-5c78c8324d91/go.mod h1:N756jaC76zZZVHs0yXsURRQ315Aby7eXhwWE3F9Pkac=
+github.com/vydrazde/kypo-go-client v0.0.0-20231221213600-5f90f013e7b3 h1:nAAtF6SDEUguhdotLZqxEbeCMUtXWs/4WvlBfMw+m4E=
+github.com/vydrazde/kypo-go-client v0.0.0-20231221213600-5f90f013e7b3/go.mod h1:N756jaC76zZZVHs0yXsURRQ315Aby7eXhwWE3F9Pkac=
 github.com/xanzy/ssh-agent v0.3.3 h1:+/15pJfg/RsTxqYcX6fHqOXZwwMP+2VyYWJeWM2qQFM=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
 github.com/zclconf/go-cty v1.14.1 h1:t9fyA35fwjjUMcmL5hLER+e/rEPqrbCK1/OSE4SI9KA=

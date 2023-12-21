@@ -308,7 +308,13 @@ func (r *sandboxAllocationUnitResource) Create(ctx context.Context, req resource
 		return
 	}
 
-	allocationRequest, err := r.client.PollRequestFinished(ctx, allocationUnit.AllocationRequest.Id, pollTimeCreate, "allocation")
+	err = r.client.AwaitAllocationRequestCreate(ctx, allocationUnit.Id, pollTimeCreate)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create sandbox allocation request, got error: %s", err))
+		return
+	}
+
+	allocationRequest, err := r.client.PollRequestFinished(ctx, allocationUnit.Id, pollTimeCreate, "allocation")
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("awaiting allocation request failed, got error: %s", err))
 		return

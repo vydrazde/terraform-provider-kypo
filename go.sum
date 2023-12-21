@@ -183,6 +183,10 @@ github.com/vydrazde/kypo-go-client v0.0.0-20231221183929-b00e429cced4 h1:5Z1IJrp
 github.com/vydrazde/kypo-go-client v0.0.0-20231221183929-b00e429cced4/go.mod h1:N756jaC76zZZVHs0yXsURRQ315Aby7eXhwWE3F9Pkac=
 github.com/vydrazde/kypo-go-client v0.0.0-20231221202223-35acdb8f3277 h1:8vHYkmLlJM4Su0hJ5apNMVE+Ry8v5uhDEorVXDwQPd0=
 github.com/vydrazde/kypo-go-client v0.0.0-20231221202223-35acdb8f3277/go.mod h1:N756jaC76zZZVHs0yXsURRQ315Aby7eXhwWE3F9Pkac=
+github.com/vydrazde/kypo-go-client v0.0.0-20231221204616-9d0b6eaa5871 h1:Ey4z+/GoVewgwKeN0EcuE19bJiFNRiHk4TtBqhue/pg=
+github.com/vydrazde/kypo-go-client v0.0.0-20231221204616-9d0b6eaa5871/go.mod h1:N756jaC76zZZVHs0yXsURRQ315Aby7eXhwWE3F9Pkac=
+github.com/vydrazde/kypo-go-client v0.0.0-20231221211455-5c78c8324d91 h1:dFKdPzpHiNhVB1F58KiBHOfCawqQchqE95lAg/2E/qo=
+github.com/vydrazde/kypo-go-client v0.0.0-20231221211455-5c78c8324d91/go.mod h1:N756jaC76zZZVHs0yXsURRQ315Aby7eXhwWE3F9Pkac=
 github.com/xanzy/ssh-agent v0.3.3 h1:+/15pJfg/RsTxqYcX6fHqOXZwwMP+2VyYWJeWM2qQFM=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
 github.com/zclconf/go-cty v1.14.1 h1:t9fyA35fwjjUMcmL5hLER+e/rEPqrbCK1/OSE4SI9KA=

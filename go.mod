@@ -11,7 +11,7 @@ require (
 	github.com/hashicorp/terraform-plugin-go v0.20.0
 	github.com/hashicorp/terraform-plugin-log v0.9.0
 	github.com/hashicorp/terraform-plugin-testing v1.6.0
-	github.com/vydrazde/kypo-go-client v0.0.0-20231221202223-35acdb8f3277
+	github.com/vydrazde/kypo-go-client v0.0.0-20231221211455-5c78c8324d91
 	golang.org/x/exp v0.0.0-20231214170342-aacd6d4b4611
 )
 

@@ -274,7 +274,7 @@ func (r *sandboxAllocationUnitResource) Configure(_ context.Context, req resourc
 }
 
 func (r *sandboxAllocationUnitResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var poolId int64
+	var poolId types.Int64
 	var timeoutsValue timeouts.Value
 	var pollTimes types.Object
 
@@ -297,7 +297,7 @@ func (r *sandboxAllocationUnitResource) Create(ctx context.Context, req resource
 		return
 	}
 
-	allocationUnits, err := r.client.CreateSandboxAllocationUnits(ctx, poolId, 1)
+	allocationUnits, err := r.client.CreateSandboxAllocationUnits(ctx, poolId.ValueInt64(), 1)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create sandbox allocation unit, got error: %s", err))
 		return
@@ -344,7 +344,7 @@ func (r *sandboxAllocationUnitResource) Create(ctx context.Context, req resource
 }
 
 func (r *sandboxAllocationUnitResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var id int64
+	var id types.Int64
 	var timeoutsValue timeouts.Value
 
 	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("id"), &id)...)
@@ -363,7 +363,7 @@ func (r *sandboxAllocationUnitResource) Read(ctx context.Context, req resource.R
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	allocationUnit, err := r.client.GetSandboxAllocationUnit(ctx, id)
+	allocationUnit, err := r.client.GetSandboxAllocationUnit(ctx, id.ValueInt64())
 	if errors.Is(err, kypo.ErrNotFound) {
 		resp.State.RemoveResource(ctx)
 		return
@@ -442,7 +442,7 @@ func (r *sandboxAllocationUnitResource) Update(ctx context.Context, req resource
 
 func (r *sandboxAllocationUnitResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var allocationRequest *kypo.SandboxRequest
-	var id int64
+	var id types.Int64
 	var timeoutsValue timeouts.Value
 	var pollTimes types.Object
 
@@ -472,7 +472,7 @@ func (r *sandboxAllocationUnitResource) Delete(ctx context.Context, req resource
 		}
 	}
 
-	err := r.client.CreateSandboxCleanupRequestAwait(ctx, id, pollTimeDelete)
+	err := r.client.CreateSandboxCleanupRequestAwait(ctx, id.ValueInt64(), pollTimeDelete)
 	if errors.Is(err, kypo.ErrNotFound) {
 		return
 	}

@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/vydrazde/kypo-go-client/pkg/kypo"
 )
@@ -146,7 +147,7 @@ func (r *sandboxDefinitionResource) Create(ctx context.Context, req resource.Cre
 }
 
 func (r *sandboxDefinitionResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var id int64
+	var id types.Int64
 
 	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("id"), &id)...)
 
@@ -156,7 +157,7 @@ func (r *sandboxDefinitionResource) Read(ctx context.Context, req resource.ReadR
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	definition, err := r.client.GetSandboxDefinition(ctx, id)
+	definition, err := r.client.GetSandboxDefinition(ctx, id.ValueInt64())
 	if errors.Is(err, kypo.ErrNotFound) {
 		resp.State.RemoveResource(ctx)
 		return
@@ -175,7 +176,7 @@ func (r *sandboxDefinitionResource) Update(_ context.Context, _ resource.UpdateR
 }
 
 func (r *sandboxDefinitionResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var id int64
+	var id types.Int64
 
 	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("id"), &id)...)
 
@@ -185,7 +186,7 @@ func (r *sandboxDefinitionResource) Delete(ctx context.Context, req resource.Del
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	err := r.client.DeleteSandboxDefinition(ctx, id)
+	err := r.client.DeleteSandboxDefinition(ctx, id.ValueInt64())
 	if errors.Is(err, kypo.ErrNotFound) {
 		return
 	}

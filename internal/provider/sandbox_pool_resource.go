@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/vydrazde/kypo-go-client/pkg/kypo"
 )
@@ -208,7 +209,7 @@ func (r *sandboxPoolResource) Configure(_ context.Context, req resource.Configur
 }
 
 func (r *sandboxPoolResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var definitionId, maxSize int64
+	var definitionId, maxSize types.Int64
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("definition").AtName("id"), &definitionId)...)
@@ -220,7 +221,7 @@ func (r *sandboxPoolResource) Create(ctx context.Context, req resource.CreateReq
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	pool, err := r.client.CreateSandboxPool(ctx, definitionId, maxSize)
+	pool, err := r.client.CreateSandboxPool(ctx, definitionId.ValueInt64(), maxSize.ValueInt64())
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create sandbox pool, got error: %s", err))
 		return
@@ -235,7 +236,7 @@ func (r *sandboxPoolResource) Create(ctx context.Context, req resource.CreateReq
 }
 
 func (r *sandboxPoolResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var id int64
+	var id types.Int64
 
 	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("id"), &id)...)
 
@@ -245,7 +246,7 @@ func (r *sandboxPoolResource) Read(ctx context.Context, req resource.ReadRequest
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	pool, err := r.client.GetSandboxPool(ctx, id)
+	pool, err := r.client.GetSandboxPool(ctx, id.ValueInt64())
 	if errors.Is(err, kypo.ErrNotFound) {
 		resp.State.RemoveResource(ctx)
 		return
@@ -264,7 +265,7 @@ func (r *sandboxPoolResource) Update(_ context.Context, _ resource.UpdateRequest
 }
 
 func (r *sandboxPoolResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var id int64
+	var id types.Int64
 
 	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("id"), &id)...)
 
@@ -274,7 +275,7 @@ func (r *sandboxPoolResource) Delete(ctx context.Context, req resource.DeleteReq
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	err := r.client.DeleteSandboxPool(ctx, id)
+	err := r.client.DeleteSandboxPool(ctx, id.ValueInt64())
 	if errors.Is(err, kypo.ErrNotFound) {
 		return
 	}

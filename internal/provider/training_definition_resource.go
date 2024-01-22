@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/vydrazde/kypo-go-client/pkg/kypo"
 )
@@ -104,7 +105,7 @@ func (r *trainingDefinitionResource) Create(ctx context.Context, req resource.Cr
 }
 
 func (r *trainingDefinitionResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var id int64
+	var id types.Int64
 
 	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("id"), &id)...)
 
@@ -114,7 +115,7 @@ func (r *trainingDefinitionResource) Read(ctx context.Context, req resource.Read
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	definition, err := r.client.GetTrainingDefinition(ctx, id)
+	definition, err := r.client.GetTrainingDefinition(ctx, id.ValueInt64())
 	if errors.Is(err, kypo.ErrNotFound) {
 		resp.State.RemoveResource(ctx)
 		return
@@ -133,7 +134,7 @@ func (r *trainingDefinitionResource) Update(_ context.Context, _ resource.Update
 }
 
 func (r *trainingDefinitionResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var id int64
+	var id types.Int64
 
 	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("id"), &id)...)
 
@@ -143,7 +144,7 @@ func (r *trainingDefinitionResource) Delete(ctx context.Context, req resource.De
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
-	err := r.client.DeleteTrainingDefinition(ctx, id)
+	err := r.client.DeleteTrainingDefinition(ctx, id.ValueInt64())
 	if errors.Is(err, kypo.ErrNotFound) {
 		return
 	}

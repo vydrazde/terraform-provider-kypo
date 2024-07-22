@@ -28,12 +28,12 @@ func TestAccSandboxDefinitionResource(t *testing.T) {
 			{
 				Config: providerConfig + gitlabTestingDefinitionTag + `
 resource "kypo_sandbox_definition" "test" {
-  url = "git@gitlab.ics.muni.cz:muni-kypo-crp/prototypes-and-examples/sandbox-definitions/terraform-provider-testing-definition.git"
+  url = "https://gitlab.ics.muni.cz/muni-kypo-crp/prototypes-and-examples/sandbox-definitions/terraform-provider-testing-definition.git"
   rev = gitlab_project_tag.terraform_testing_definition[0].name
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("kypo_sandbox_definition.test", "url", "git@gitlab.ics.muni.cz:muni-kypo-crp/prototypes-and-examples/sandbox-definitions/terraform-provider-testing-definition.git"),
+					resource.TestCheckResourceAttr("kypo_sandbox_definition.test", "url", "https://gitlab.ics.muni.cz/muni-kypo-crp/prototypes-and-examples/sandbox-definitions/terraform-provider-testing-definition.git"),
 					resource.TestCheckResourceAttr("kypo_sandbox_definition.test", "rev", os.Getenv("TF_VAR_TAG_NAME")+"-0"),
 					resource.TestCheckResourceAttr("kypo_sandbox_definition.test", "name", "terraform-testing-definition"),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_definition.test", "id"),
@@ -55,12 +55,12 @@ resource "kypo_sandbox_definition" "test" {
 			{
 				Config: providerConfig + gitlabTestingDefinitionTag + `
 resource "kypo_sandbox_definition" "test" {
-  url = "git@gitlab.ics.muni.cz:muni-kypo-crp/prototypes-and-examples/sandbox-definitions/terraform-provider-testing-definition.git"
+  url = "https://gitlab.ics.muni.cz/muni-kypo-crp/prototypes-and-examples/sandbox-definitions/terraform-provider-testing-definition.git"
   rev = gitlab_project_tag.terraform_testing_definition[1].name
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("kypo_sandbox_definition.test", "url", "git@gitlab.ics.muni.cz:muni-kypo-crp/prototypes-and-examples/sandbox-definitions/terraform-provider-testing-definition.git"),
+					resource.TestCheckResourceAttr("kypo_sandbox_definition.test", "url", "https://gitlab.ics.muni.cz/muni-kypo-crp/prototypes-and-examples/sandbox-definitions/terraform-provider-testing-definition.git"),
 					resource.TestCheckResourceAttr("kypo_sandbox_definition.test", "rev", os.Getenv("TF_VAR_TAG_NAME")+"-1"),
 					resource.TestCheckResourceAttr("kypo_sandbox_definition.test", "name", "terraform-testing-definition"),
 					resource.TestCheckResourceAttrSet("kypo_sandbox_definition.test", "id"),

@@ -29,7 +29,7 @@ resource "gitlab_project_tag" "terraform_testing_definition" {
 }
 
 resource "kypo_sandbox_definition" "test" {
-  url = "git@gitlab.ics.muni.cz:muni-kypo-crp/prototypes-and-examples/sandbox-definitions/terraform-provider-testing-definition.git"
+  url = "https://gitlab.ics.muni.cz/muni-kypo-crp/prototypes-and-examples/sandbox-definitions/terraform-provider-testing-definition.git"
   rev = gitlab_project_tag.terraform_testing_definition.name
 }
 `
